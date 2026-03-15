@@ -216,10 +216,18 @@ export function addCustomerBookingToStore(payload: PendingBookingPayload): void 
     link: "/admin/bookings",
   };
 
-  saveAdminData({
+  const nextData: AdminData = {
     ...data,
     guests: [...data.guests, guest],
     bookings: [...data.bookings, booking],
     notifications: [notification, ...(data.notifications ?? [])],
-  });
+  };
+  saveAdminData(nextData);
+  if (typeof fetch !== "undefined") {
+    fetch("/api/admin/data", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(nextData),
+    }).catch(() => {});
+  }
 }

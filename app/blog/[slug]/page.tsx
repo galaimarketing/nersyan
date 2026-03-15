@@ -1,23 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { I18nProvider, useI18n } from "@/lib/i18n";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
-import { getPublicBlogPostBySlug } from "@/lib/public-blog";
+import { usePublicBlogPostBySlug } from "@/lib/public-blog";
 
 function BlogPostContent() {
   const params = useParams();
   const slug = typeof params.slug === "string" ? params.slug : "";
   const { language, dir } = useI18n();
-  const [post, setPost] = useState<ReturnType<typeof getPublicBlogPostBySlug>>(undefined);
-
-  useEffect(() => {
-    setPost(getPublicBlogPostBySlug(slug));
-  }, [slug]);
+  const post = usePublicBlogPostBySlug(slug);
 
   useEffect(() => {
     if (post) {

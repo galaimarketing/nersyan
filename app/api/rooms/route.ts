@@ -1,9 +1,10 @@
-"use client";
-
-import { useState, useEffect } from "react";
-import type { Room } from "@/lib/rooms-data";
-import { loadAdminData, isRoomBooked } from "@/lib/admin-store";
+import { NextResponse } from "next/server";
+import { getAdminData } from "@/lib/db";
+import { isRoomBooked } from "@/lib/admin-store";
 import type { AdminData, AdminRoom } from "@/lib/admin-store";
+import type { Room } from "@/lib/rooms-data";
+
+export const dynamic = "force-dynamic";
 
 const PLACEHOLDER_IMAGE =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='%23e5e7eb' width='400' height='300'/%3E%3Ctext fill='%239ca3af' font-family='sans-serif' font-size='16' x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle'%3ERoom image%3C/text%3E%3C/svg%3E";
@@ -32,29 +33,11 @@ function mapAdminRoomToRoom(ar: AdminRoom, data: AdminData): Room {
   };
 }
 
-export function getPublicRooms(): Room[] {
-  const data = loadAdminData();
-  return data.rooms.map((ar) => mapAdminRoomToRoom(ar, data));
-}
-
-export function usePublicRooms(): Room[] {
-  const [rooms, setRooms] = useState<Room[]>([]);
-
-  useEffect(() => {
-    const load = () => {
-      fetch("/api/rooms")
-        .then((res) => (res.ok ? res.json() : null))
-        .then((api: Room[] | null) => {
-          if (Array.isArray(api) && api.length >= 0) setRooms(api);
-          else setRooms(getPublicRooms());
-        })
-        .catch(() => setRooms(getPublicRooms()));
-    };
-    load();
-    const onStorage = () => setRooms(getPublicRooms());
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
-
-  return rooms;
+export async function GET() {
+  const data = await getAdminData();
+  if (!data) {
+    return NextResponse.json([]);
+  }
+  const rooms = data.rooms.map((ar) => mapAdminRoomToRoom(ar, data));
+  return NextResponse.json(rooms);
 }

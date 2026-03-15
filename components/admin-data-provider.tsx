@@ -44,16 +44,57 @@ type AdminDataContextValue = {
 
 const AdminDataContext = createContext<AdminDataContextValue | null>(null);
 
+const ADMIN_DATA_API = "/api/admin/data";
+
 export function AdminDataProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<AdminData>(defaultAdminData);
+  const [initialized, setInitialized] = useState(false);
 
+  // Load: prefer API, fallback to localStorage
   useEffect(() => {
-    setData(loadAdminData());
+    let cancelled = false;
+    fetch(ADMIN_DATA_API)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((apiData: AdminData | null) => {
+        if (cancelled) return;
+        if (apiData && Array.isArray(apiData.bookings)) {
+          setData({
+            bookings: apiData.bookings ?? [],
+            guests: apiData.guests ?? [],
+            rooms: apiData.rooms ?? [],
+            blogPosts: apiData.blogPosts ?? [],
+            media: apiData.media ?? [],
+            notifications: apiData.notifications ?? [],
+          });
+        } else {
+          setData(loadAdminData());
+        }
+        setInitialized(true);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setData(loadAdminData());
+          setInitialized(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
+  // Persist: always localStorage (offline fallback), and API when available
   useEffect(() => {
+    if (!initialized) return;
     saveAdminData(data);
-  }, [data]);
+    const t = setTimeout(() => {
+      fetch(ADMIN_DATA_API, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }).catch(() => {});
+    }, 300);
+    return () => clearTimeout(t);
+  }, [data, initialized]);
 
   const addBooking = useCallback(
     (b: Omit<AdminBooking, "id" | "createdAt">) => {

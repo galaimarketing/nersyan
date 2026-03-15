@@ -2,34 +2,13 @@
 
 import React from "react";
 import { usePathname } from "next/navigation";
+import type { AppSettings } from "@/lib/settings-types";
+import { defaultAppSettings } from "@/lib/settings-types";
 
 const STORAGE_KEY = "nersian-settings";
+export type { AppSettings };
 
-export interface AppSettings {
-  taxRatePercent: number;
-  currency: string;
-  hotelNameEn?: string;
-  hotelNameAr?: string;
-  contactEmail?: string;
-  seoTitle?: string;
-  seoDescription?: string;
-  seoKeywords?: string;
-  newBookingAlerts?: boolean;
-  checkinReminders?: boolean;
-}
-
-const defaults: AppSettings = {
-  taxRatePercent: 15,
-  currency: "SAR",
-  hotelNameEn: "Nersian Taiba",
-  hotelNameAr: "نرسيان طيبة",
-  contactEmail: "info@nersiantaiba.com",
-  seoTitle: "Nersian Taiba Hotel | نرسيان طيبة - Hotels in Madinah",
-  seoDescription: "Luxurious hotel accommodation near Al-Masjid an-Nabawi in Madinah, Saudi Arabia.",
-  seoKeywords: "Hotels in Madinah, Nersian Taiba, فنادق المدينة المنورة, نرسيان طيبة",
-  newBookingAlerts: true,
-  checkinReminders: true,
-};
+const defaults = defaultAppSettings;
 
 export function loadSettings(): AppSettings {
   if (typeof window === "undefined") return defaults;
@@ -60,6 +39,11 @@ export function saveSettings(settings: Partial<AppSettings>): void {
     const current = loadSettings();
     const next = { ...current, ...settings };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(next),
+    }).catch(() => {});
   } catch {
     // ignore
   }
@@ -71,14 +55,23 @@ export function useSettings(): AppSettings {
   const [settings, setSettings] = React.useState<AppSettings>(defaults);
 
   React.useEffect(() => {
-    setSettings(loadSettings());
-  }, [pathname]);
-
-  React.useEffect(() => {
     const read = () => setSettings(loadSettings());
-    read();
+    const fromApi = () => {
+      fetch("/api/settings")
+        .then((res) => (res.ok ? res.json() : null))
+        .then((api: AppSettings | null) => {
+          if (api && typeof api.currency === "string") {
+            setSettings({ ...defaults, ...api });
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(api));
+            } catch {}
+          } else read();
+        })
+        .catch(read);
+    };
+    fromApi();
     const onVisible = () => {
-      if (typeof document !== "undefined" && document.visibilityState === "visible") read();
+      if (typeof document !== "undefined" && document.visibilityState === "visible") fromApi();
     };
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("storage", read);
@@ -87,6 +80,15 @@ export function useSettings(): AppSettings {
       window.removeEventListener("storage", read);
     };
   }, []);
+
+  React.useEffect(() => {
+    fetch("/api/settings")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((api: AppSettings | null) => {
+        if (api && typeof api.currency === "string") setSettings({ ...defaults, ...api });
+      })
+      .catch(() => {});
+  }, [pathname]);
 
   return settings;
 }
