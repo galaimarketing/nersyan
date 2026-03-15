@@ -5,8 +5,13 @@ import type { AppSettings } from "@/lib/settings-types";
 const ADMIN_DATA_KEY = "admin_data";
 const SETTINGS_KEY = "settings";
 
+export function getConnectionString(): string | null {
+  // Vercel injects POSTGRES_URL when you connect a Postgres store; also support DATABASE_URL
+  return process.env.DATABASE_URL ?? process.env.POSTGRES_URL ?? null;
+}
+
 function getSql() {
-  const connectionString = process.env.DATABASE_URL;
+  const connectionString = getConnectionString();
   if (!connectionString) return null;
   return neon(connectionString);
 }
@@ -66,5 +71,5 @@ export async function setSettings(settings: AppSettings): Promise<boolean> {
 }
 
 export function hasDatabase(): boolean {
-  return Boolean(process.env.DATABASE_URL);
+  return Boolean(getConnectionString());
 }
