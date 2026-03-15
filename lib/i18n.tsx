@@ -332,6 +332,7 @@ const translations: Translations = {
   "admin.mediaTitle": { ar: "الوسائط", en: "Media" },
   "admin.imagesAndFiles": { ar: "الصور والملفات للغرف والمدونة", en: "Images and files for rooms and blog" },
   "admin.upload": { ar: "رفع", en: "Upload" },
+  "admin.uploading": { ar: "جاري الرفع…", en: "Uploading…" },
   "admin.library": { ar: "المكتبة", en: "Library" },
   "admin.uploadedMediaFiles": { ar: "الملفات المرفوعة", en: "Uploaded media files" },
   "admin.noMediaYet": { ar: "لا توجد وسائط بعد", en: "No media yet" },

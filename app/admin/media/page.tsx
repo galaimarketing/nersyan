@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { Upload, ArrowLeft, ImageIcon, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,20 +12,41 @@ export default function AdminMediaPage() {
   const { t } = useI18n();
   const { data, addMedia, deleteMedia } = useAdminData();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files?.length) return;
-    Array.from(files).forEach((file) => {
-      if (!file.type.startsWith("image/")) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        const url = reader.result as string;
-        addMedia({ name: file.name, url, type: file.type });
-      };
-      reader.readAsDataURL(file);
-    });
     e.target.value = "";
+
+    const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (!imageFiles.length) return;
+
+    setUploadError(null);
+    setUploading(true);
+
+    try {
+      const formData = new FormData();
+      imageFiles.forEach((file) => formData.append("file", file));
+
+      const res = await fetch("/api/admin/upload", { method: "POST", body: formData });
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setUploadError(json.error || "Upload failed");
+        return;
+      }
+      if (json.files?.length) {
+        json.files.forEach((f: { name: string; url: string; type: string }) => {
+          addMedia({ name: f.name, url: f.url, type: f.type });
+        });
+      }
+    } catch {
+      setUploadError("Upload failed");
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -46,11 +67,18 @@ export default function AdminMediaPage() {
         <Button
           onClick={() => fileInputRef.current?.click()}
           className="inline-flex items-center gap-2"
+          disabled={uploading}
         >
           <Upload className="h-4 w-4" />
-          {t("admin.upload")}
+          {uploading ? t("admin.uploading") ?? "Uploading…" : t("admin.upload")}
         </Button>
       </div>
+
+      {uploadError && (
+        <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+          {uploadError}
+        </div>
+      )}
 
       <Card>
         <CardHeader>
