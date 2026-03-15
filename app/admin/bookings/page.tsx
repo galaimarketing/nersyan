@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Search, Calendar, Check, Filter, Inbox, BedDouble, User, Mail, Phone } from "lucide-react";
@@ -50,7 +50,7 @@ const paymentKeyMap: Record<PaymentStatus, string> = {
   refunded: "admin.paymentRefunded",
 };
 
-export default function BookingsPage() {
+function BookingsPageContent() {
   const { t } = useI18n();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -568,5 +568,13 @@ export default function BookingsPage() {
         </div>
       </Card>
     </div>
+  );
+}
+
+export default function BookingsPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-[40vh] items-center justify-center text-muted-foreground">Loading…</div>}>
+      <BookingsPageContent />
+    </Suspense>
   );
 }
