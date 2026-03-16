@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { useAdminData } from "@/components/admin-data-provider";
 import { useI18n } from "@/lib/i18n";
 
+const INPUT_ID = "admin-media-file-input";
+
 function getImageType(file: File): string {
   if (file.type?.startsWith("image/")) return file.type;
   const name = (file.name || "").toLowerCase();
@@ -22,7 +24,6 @@ function getImageType(file: File): string {
 export default function AdminMediaPage() {
   const { t } = useI18n();
   const { data, addMedia, deleteMedia } = useAdminData();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
@@ -30,7 +31,8 @@ export default function AdminMediaPage() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files?.length) {
-      setUploadError(null);
+      setUploadError("No file selected. Click Upload and choose an image (e.g. .jpg).");
+      setTimeout(() => setUploadError(null), 4000);
       return;
     }
     e.target.value = "";
@@ -93,20 +95,19 @@ export default function AdminMediaPage() {
           <p className="text-sm text-muted-foreground">{t("admin.imagesAndFiles")}</p>
         </div>
         <input
-          ref={fileInputRef}
+          id={INPUT_ID}
           type="file"
           accept="image/*"
           multiple
-          className="hidden"
+          className="sr-only"
           onChange={handleFileChange}
-        />
-        <Button
-          onClick={() => fileInputRef.current?.click()}
-          className="inline-flex items-center gap-2"
           disabled={uploading}
-        >
-          <Upload className="h-4 w-4" />
-          {uploading ? t("admin.uploading") ?? "Uploading…" : t("admin.upload")}
+        />
+        <Button asChild disabled={uploading} className="inline-flex items-center gap-2">
+          <label htmlFor={INPUT_ID} className="cursor-pointer">
+            <Upload className="me-2 inline h-4 w-4" />
+            {uploading ? (t("admin.uploading") ?? "Uploading…") : t("admin.upload")}
+          </label>
         </Button>
       </div>
 
