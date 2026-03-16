@@ -9,16 +9,14 @@ import { Button } from "@/components/ui/button";
 import { useAdminData } from "@/components/admin-data-provider";
 import { useI18n } from "@/lib/i18n";
 
-const IMAGE_EXT = /\.(jpe?g|png|gif|webp)$/i;
-function isImageFile(file: File): boolean {
-  if (file.type?.startsWith("image/")) return true;
-  return IMAGE_EXT.test(file.name);
-}
 function getImageType(file: File): string {
   if (file.type?.startsWith("image/")) return file.type;
-  const ext = (file.name.match(/\.([a-z]+)$/i)?.[1] ?? "").toLowerCase();
-  const map: Record<string, string> = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", gif: "image/gif", webp: "image/webp" };
-  return map[ext] ?? "image/jpeg";
+  const name = (file.name || "").toLowerCase();
+  if (name.endsWith(".png")) return "image/png";
+  if (name.endsWith(".gif")) return "image/gif";
+  if (name.endsWith(".webp")) return "image/webp";
+  if (name.endsWith(".jpg") || name.endsWith(".jpeg")) return "image/jpeg";
+  return "image/jpeg";
 }
 
 export default function AdminMediaPage() {
@@ -34,22 +32,17 @@ export default function AdminMediaPage() {
     if (!files?.length) return;
     e.target.value = "";
 
-    const imageFiles = Array.from(files).filter(isImageFile);
-    if (!imageFiles.length) {
-      setUploadError("Please select image files (JPEG, PNG, GIF, WebP).");
-      return;
-    }
-
     setUploadError(null);
     setUploadSuccess(null);
     setUploading(true);
 
     const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
     const uploadUrl = `${baseUrl}/api/admin/upload`;
+    const fileList = Array.from(files);
 
     try {
       const uploaded: { name: string; url: string; type: string }[] = [];
-      for (const file of imageFiles) {
+      for (const file of fileList) {
         const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_") || "image";
         const pathname = `media/${Date.now()}-${safeName}`;
         const contentType = getImageType(file);
