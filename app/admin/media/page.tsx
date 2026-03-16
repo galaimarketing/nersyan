@@ -9,6 +9,18 @@ import { Button } from "@/components/ui/button";
 import { useAdminData } from "@/components/admin-data-provider";
 import { useI18n } from "@/lib/i18n";
 
+const IMAGE_EXT = /\.(jpe?g|png|gif|webp)$/i;
+function isImageFile(file: File): boolean {
+  if (file.type?.startsWith("image/")) return true;
+  return IMAGE_EXT.test(file.name);
+}
+function getImageType(file: File): string {
+  if (file.type?.startsWith("image/")) return file.type;
+  const ext = (file.name.match(/\.([a-z]+)$/i)?.[1] ?? "").toLowerCase();
+  const map: Record<string, string> = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", gif: "image/gif", webp: "image/webp" };
+  return map[ext] ?? "image/jpeg";
+}
+
 export default function AdminMediaPage() {
   const { t } = useI18n();
   const { data, addMedia, deleteMedia } = useAdminData();
@@ -22,7 +34,7 @@ export default function AdminMediaPage() {
     if (!files?.length) return;
     e.target.value = "";
 
-    const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    const imageFiles = Array.from(files).filter(isImageFile);
     if (!imageFiles.length) {
       setUploadError("Please select image files (JPEG, PNG, GIF, WebP).");
       return;
@@ -40,12 +52,14 @@ export default function AdminMediaPage() {
       for (const file of imageFiles) {
         const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_") || "image";
         const pathname = `media/${Date.now()}-${safeName}`;
+        const contentType = getImageType(file);
         const blob = await upload(pathname, file, {
           access: "public",
           handleUploadUrl: uploadUrl,
+          contentType,
         });
-        uploaded.push({ name: file.name, url: blob.url, type: file.type });
-        addMedia({ name: file.name, url: blob.url, type: file.type });
+        uploaded.push({ name: file.name, url: blob.url, type: contentType });
+        addMedia({ name: file.name, url: blob.url, type: contentType });
       }
       if (uploaded.length > 0) {
         setUploadSuccess(
