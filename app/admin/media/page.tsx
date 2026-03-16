@@ -23,18 +23,26 @@ export default function AdminMediaPage() {
     e.target.value = "";
 
     const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
-    if (!imageFiles.length) return;
+    if (!imageFiles.length) {
+      setUploadError("Please select image files (JPEG, PNG, GIF, WebP).");
+      return;
+    }
 
     setUploadError(null);
     setUploadSuccess(null);
     setUploading(true);
 
+    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+    const uploadUrl = `${baseUrl}/api/admin/upload`;
+
     try {
       const uploaded: { name: string; url: string; type: string }[] = [];
       for (const file of imageFiles) {
-        const blob = await upload(file.name, file, {
+        const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_") || "image";
+        const pathname = `media/${Date.now()}-${safeName}`;
+        const blob = await upload(pathname, file, {
           access: "public",
-          handleUploadUrl: "/api/admin/upload",
+          handleUploadUrl: uploadUrl,
         });
         uploaded.push({ name: file.name, url: blob.url, type: file.type });
         addMedia({ name: file.name, url: blob.url, type: file.type });
@@ -48,9 +56,13 @@ export default function AdminMediaPage() {
         setTimeout(() => setUploadSuccess(null), 4000);
       }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Upload failed";
+      const err = e instanceof Error ? e : new Error(String(e));
+      let msg = err.message;
+      if (msg.includes("503") || msg.includes("Blob storage not configured")) {
+        msg = "Blob storage not configured. In Vercel: connect a Blob store to this project and add BLOB_READ_WRITE_TOKEN, then redeploy.";
+      }
       setUploadError(msg);
-      console.error("Upload error:", e);
+      console.error("Upload error:", err);
     } finally {
       setUploading(false);
     }
@@ -82,8 +94,17 @@ export default function AdminMediaPage() {
       </div>
 
       {uploadError && (
-        <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-2 text-sm text-destructive">
-          {uploadError}
+        <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <p className="font-medium">Upload failed</p>
+          <p className="mt-1">{uploadError}</p>
+          <a
+            href="/api/admin/upload"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-block text-xs underline"
+          >
+            Check Blob config →
+          </a>
         </div>
       )}
       {uploadSuccess && (

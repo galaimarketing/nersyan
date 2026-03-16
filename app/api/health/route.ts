@@ -4,13 +4,15 @@ import { neon } from "@neondatabase/serverless";
 
 export const dynamic = "force-dynamic";
 
-/** GET /api/health - Check if database is configured and reachable. */
+/** GET /api/health - Check if database and Blob storage are configured. */
 export async function GET() {
+  const blobConfigured = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
   const connectionString = getConnectionString();
   if (!connectionString) {
     return NextResponse.json({
       ok: false,
       database: false,
+      blobConfigured,
       error: "No DATABASE_URL or POSTGRES_URL set in environment",
     });
   }
@@ -23,6 +25,7 @@ export async function GET() {
     return NextResponse.json({
       ok: true,
       database: true,
+      blobConfigured,
       tableExists,
       message: tableExists ? "Database and app_data table OK" : "Connected but app_data table missing - run lib/db/schema.sql in Neon SQL Editor",
     });
@@ -31,6 +34,7 @@ export async function GET() {
     return NextResponse.json({
       ok: false,
       database: true,
+      blobConfigured,
       error: message,
       hint: message.includes("does not exist") ? "Run lib/db/schema.sql in Neon SQL Editor" : "Check DATABASE_URL and network",
     });

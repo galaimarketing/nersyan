@@ -5,6 +5,12 @@ export const dynamic = "force-dynamic";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
+/** GET: Check if Blob storage is configured (for debugging). */
+export async function GET() {
+  const configured = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+  return NextResponse.json({ blobConfigured: configured });
+}
+
 /**
  * Client upload: the browser uploads directly to Vercel Blob using a token
  * we return here. No file goes through this API, so no body size limit.
