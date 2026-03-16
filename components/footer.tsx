@@ -92,8 +92,8 @@ export function Footer() {
               <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
                 {language === "ar"
-                  ? "شارع الملك فيصل، المدينة المنورة"
-                  : "King Faisal Street, Madinah"}
+                  ? "نرسيان طيبة للشقق الفندقية، العنابس، المدينة المنورة 42312، المملكة العربية السعودية"
+                  : "Nersyan Taiba Hotel Apartments, Al Anabis, Madinah 42312, Saudi Arabia"}
               </span>
             </div>
             <div className="flex items-center gap-2">

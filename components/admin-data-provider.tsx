@@ -13,11 +13,13 @@ import {
   loadAdminData,
   saveAdminData,
   generateId,
+  normalizeMedia,
 } from "@/lib/admin-store";
 
 type AdminDataContextValue = {
   data: AdminData;
   setData: React.Dispatch<React.SetStateAction<AdminData>>;
+  refetchFromApi: () => Promise<void>;
   // Bookings
   addBooking: (b: Omit<AdminBooking, "id" | "createdAt">) => AdminBooking;
   updateBooking: (id: string, updates: Partial<AdminBooking>) => void;
@@ -63,7 +65,7 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
             guests: apiData.guests ?? [],
             rooms: apiData.rooms ?? [],
             blogPosts: apiData.blogPosts ?? [],
-            media: apiData.media ?? [],
+            media: normalizeMedia(apiData.media),
             notifications: apiData.notifications ?? [],
           });
         } else {
@@ -80,6 +82,25 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  const refetchFromApi = useCallback(async () => {
+    try {
+      const res = await fetch(ADMIN_DATA_API);
+      const apiData = res.ok ? (await res.json()) as AdminData : null;
+      if (apiData && Array.isArray(apiData.bookings)) {
+        setData({
+          bookings: apiData.bookings ?? [],
+          guests: apiData.guests ?? [],
+          rooms: apiData.rooms ?? [],
+          blogPosts: apiData.blogPosts ?? [],
+          media: normalizeMedia(apiData.media),
+          notifications: apiData.notifications ?? [],
+        });
+      }
+    } catch {
+      // keep current data
+    }
   }, []);
 
   // Persist: always localStorage (offline fallback), and API when available
@@ -212,6 +233,7 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
   const value: AdminDataContextValue = {
     data,
     setData,
+    refetchFromApi,
     addBooking,
     updateBooking,
     addGuest,

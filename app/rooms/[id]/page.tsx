@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, Users, Maximize, Car, Wifi, Wind } from "lucide-react";
 import { usePublicRooms } from "@/lib/public-rooms";
 import type { Room } from "@/lib/rooms-data";
@@ -186,10 +185,15 @@ function RoomDetailsContent({ room }: { room: Room }) {
   );
 }
 
-export default function RoomDetailsPage() {
-  const params = useParams<{ id: string }>();
+export default function RoomDetailsPage({
+  params,
+}: {
+  params: Promise<{ id?: string }>;
+}) {
+  const resolved = use(params);
+  const id = typeof resolved.id === "string" ? resolved.id : "";
   const rooms = usePublicRooms();
-  const room = rooms.find((r) => r.id === params.id);
+  const room = rooms.find((r) => r.id === id);
 
   if (!room) {
     return (

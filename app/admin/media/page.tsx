@@ -1,68 +1,237 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import Link from "next/link";
-import { upload } from "@vercel/blob/client";
-import { Upload, ArrowLeft, ImageIcon, Trash2 } from "lucide-react";
+import { Upload, ArrowLeft, ImageIcon, Trash2, ExternalLink } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAdminData } from "@/components/admin-data-provider";
 import { useI18n } from "@/lib/i18n";
 
-const INPUT_ID = "admin-media-file-input";
+const BLOB_HOST_SUFFIX = "blob.vercel-storage.com";
+const SUPABASE_STORAGE_HOST = "supabase.co";
 
-function getImageType(file: File): string {
-  if (file.type?.startsWith("image/")) return file.type;
-  const name = (file.name || "").toLowerCase();
-  if (name.endsWith(".png")) return "image/png";
-  if (name.endsWith(".gif")) return "image/gif";
-  if (name.endsWith(".webp")) return "image/webp";
-  if (name.endsWith(".jpg") || name.endsWith(".jpeg")) return "image/jpeg";
-  return "image/jpeg";
+function isSupabaseUrl(url: string): boolean {
+  try {
+    return new URL(url).hostname.includes(SUPABASE_STORAGE_HOST);
+  } catch {
+    return false;
+  }
+}
+
+function mediaSrc(url: string): string {
+  if (!url?.startsWith("http")) return "";
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes(SUPABASE_STORAGE_HOST)) return url;
+    if (u.hostname.endsWith(BLOB_HOST_SUFFIX)) {
+      return `/api/admin/media?url=${encodeURIComponent(url)}`;
+    }
+  } catch {
+    // ignore
+  }
+  return url;
+}
+
+const MAX_DATAURL_SIZE = 1024 * 1024; // 1MB: store inline so thumbnails show when Blob/proxy fails
+
+function MediaThumbnail({ src, alt, dataUrl }: { src: string; alt: string; dataUrl?: string }) {
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [proxyFailed, setProxyFailed] = useState(false);
+  const [directFailed, setDirectFailed] = useState(false);
+  const [loading, setLoading] = useState(!dataUrl);
+  const proxyUrl = mediaSrc(src);
+  const hasDataUrl = typeof dataUrl === "string" && dataUrl.startsWith("data:image");
+  const useDirectUrl = isSupabaseUrl(src);
+  const tryDirect = proxyFailed && src?.startsWith("http") && !useDirectUrl;
+  const showPlaceholder = (proxyFailed && directFailed) || (proxyFailed && !tryDirect);
+
+  useEffect(() => {
+    if (hasDataUrl || useDirectUrl) {
+      setLoading(false);
+      return;
+    }
+    if (!proxyUrl || !src?.startsWith("http")) {
+      setLoading(false);
+      setProxyFailed(true);
+      return;
+    }
+    setProxyFailed(false);
+    setDirectFailed(false);
+    setLoading(true);
+    let revoked = false;
+    fetch(proxyUrl)
+      .then((res) => {
+        if (!res.ok) throw new Error(`${res.status}`);
+        return res.blob();
+      })
+      .then((blob) => {
+        if (revoked) return;
+        const url = URL.createObjectURL(blob);
+        setBlobUrl(url);
+        setProxyFailed(false);
+      })
+      .catch(() => {
+        if (!revoked) setProxyFailed(true);
+      })
+      .finally(() => {
+        if (!revoked) setLoading(false);
+      });
+    return () => {
+      revoked = true;
+      setBlobUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+    };
+  }, [src, proxyUrl, hasDataUrl, useDirectUrl]);
+
+  const displaySrc = hasDataUrl ? dataUrl! : blobUrl;
+  if (hasDataUrl && displaySrc) {
+    return (
+      <img
+        src={displaySrc}
+        alt={alt}
+        className="h-full w-full object-cover object-center"
+        loading="lazy"
+      />
+    );
+  }
+  if (directFailed && useDirectUrl) {
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
+        <ImageIcon className="h-12 w-12" />
+        <a href={src} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary underline">
+          Open image <ExternalLink className="h-3 w-3" />
+        </a>
+      </div>
+    );
+  }
+  if (useDirectUrl && src) {
+    return (
+      <img
+        src={src}
+        alt={alt}
+        className="h-full w-full object-cover object-center"
+        loading="lazy"
+        onError={() => setDirectFailed(true)}
+      />
+    );
+  }
+  if (!src?.startsWith("http")) {
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-muted-foreground">
+        <ImageIcon className="h-12 w-12" />
+        <span className="text-xs">No URL</span>
+      </div>
+    );
+  }
+  if (loading && !blobUrl && !tryDirect) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-muted/30">
+        <span className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+  if (tryDirect && !directFailed) {
+    return (
+      <img
+        src={src}
+        alt={alt}
+        className="h-full w-full object-cover object-center"
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        onError={() => setDirectFailed(true)}
+      />
+    );
+  }
+  if (showPlaceholder) {
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
+        <ImageIcon className="h-12 w-12" />
+        <a
+          href={src}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-xs text-primary underline"
+        >
+          Open image <ExternalLink className="h-3 w-3" />
+        </a>
+        <span className="text-[10px]">Re-upload to show thumbnail here</span>
+      </div>
+    );
+  }
+  if (blobUrl) {
+    return (
+      <img
+        src={blobUrl}
+        alt={alt}
+        className="h-full w-full object-cover object-center"
+        loading="lazy"
+      />
+    );
+  }
+  return (
+    <div className="flex h-full w-full items-center justify-center bg-muted/30">
+      <span className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+    </div>
+  );
 }
 
 export default function AdminMediaPage() {
+  const inputRef = useRef<HTMLInputElement>(null);
   const { t } = useI18n();
   const { data, addMedia, deleteMedia } = useAdminData();
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files?.length) {
-      setUploadError("No file selected. Click Upload and choose an image (e.g. .jpg).");
-      setTimeout(() => setUploadError(null), 4000);
+      setUploadError("No file selected. Choose an image (e.g. .jpg).");
+      setTimeout(() => setUploadError(null), 5000);
       return;
     }
+    const fileList = Array.from(files);
     e.target.value = "";
 
     setUploadError(null);
     setUploadSuccess(null);
     setUploading(true);
 
-    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
-    const uploadUrl = `${baseUrl}/api/admin/upload`;
-    const fileList = Array.from(files);
+    const uploadUrl = "/api/admin/upload";
+    const uploaded: { name: string; url: string; type: string }[] = [];
 
     try {
-      const uploaded: { name: string; url: string; type: string }[] = [];
-      for (let i = 0; i < fileList.length; i++) {
-        const file = fileList[i];
-        const safeName = (file.name || "image").replace(/[^a-zA-Z0-9.-]/g, "_");
-        const pathname = `media/${Date.now()}-${i}-${safeName}`;
-        const contentType = getImageType(file);
-        const blob = await upload(pathname, file, {
-          access: "public",
-          handleUploadUrl: uploadUrl,
-          contentType,
-        });
-        if (!blob?.url) {
-          setUploadError("Upload returned no URL. Check browser console.");
+      for (const file of fileList) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await fetch(uploadUrl, { method: "POST", body: formData, signal: controller.signal });
+        clearTimeout(timeoutId);
+        const json = (await res.json().catch(() => ({}))) as { ok?: boolean; files?: { name: string; url: string; type: string }[]; error?: string };
+        if (!res.ok) {
+          setUploadError(json.error || `Upload failed (${res.status}). Try a smaller image (under 4 MB).`);
           return;
         }
-        uploaded.push({ name: file.name, url: blob.url, type: contentType });
-        addMedia({ name: file.name, url: blob.url, type: contentType });
+        if (json.files?.length) {
+          for (const f of json.files) {
+            uploaded.push(f);
+            const dataUrl =
+              file.size <= MAX_DATAURL_SIZE
+                ? await new Promise<string | undefined>((resolve) => {
+                    const r = new FileReader();
+                    r.onload = () => resolve(typeof r.result === "string" ? r.result : undefined);
+                    r.onerror = () => resolve(undefined);
+                    r.readAsDataURL(file);
+                  })
+                : undefined;
+            addMedia({ name: f.name, url: f.url, type: f.type, dataUrl });
+          }
+        }
       }
       if (uploaded.length > 0) {
         setUploadSuccess(
@@ -73,8 +242,8 @@ export default function AdminMediaPage() {
         setTimeout(() => setUploadSuccess(null), 6000);
       }
     } catch (e) {
-      const msg =
-        (e instanceof Error ? e.message : null) || String(e) || "Upload failed. Open DevTools (F12) → Console for details.";
+      const isAbort = e instanceof Error && e.name === "AbortError";
+      const msg = isAbort ? "Upload timed out (60s). Try a smaller image." : ((e instanceof Error ? e.message : null) || String(e) || "Upload failed. Check network.");
       setUploadError(msg);
       console.error("Upload error:", e);
     } finally {
@@ -83,10 +252,11 @@ export default function AdminMediaPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-[60vh] space-y-6">
       {uploading && (
-        <div className="rounded-md border border-primary/50 bg-primary/10 px-4 py-3 text-sm text-foreground">
-          Uploading… Please wait. Do not close the page.
+        <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
+          <span className="size-5 animate-spin rounded-full border-2 border-primary border-t-transparent" aria-hidden />
+          <span>{t("admin.uploading") ?? "Uploading…"}</span>
         </div>
       )}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -95,19 +265,23 @@ export default function AdminMediaPage() {
           <p className="text-sm text-muted-foreground">{t("admin.imagesAndFiles")}</p>
         </div>
         <input
-          id={INPUT_ID}
+          ref={inputRef}
           type="file"
           accept="image/*"
           multiple
-          className="sr-only"
           onChange={handleFileChange}
           disabled={uploading}
+          className="sr-only"
+          aria-label={t("admin.upload")}
         />
-        <Button asChild disabled={uploading} className="inline-flex items-center gap-2">
-          <label htmlFor={INPUT_ID} className="cursor-pointer">
-            <Upload className="me-2 inline h-4 w-4" />
-            {uploading ? (t("admin.uploading") ?? "Uploading…") : t("admin.upload")}
-          </label>
+        <Button
+          type="button"
+          disabled={uploading}
+          onClick={() => inputRef.current?.click()}
+          className="inline-flex items-center gap-2"
+        >
+          <Upload className="h-4 w-4" />
+          {uploading ? (t("admin.uploading") ?? "Uploading…") : t("admin.upload")}
         </Button>
       </div>
 
@@ -115,14 +289,9 @@ export default function AdminMediaPage() {
         <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           <p className="font-medium">Upload failed</p>
           <p className="mt-1">{uploadError}</p>
-          <a
-            href="/api/admin/upload"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-2 inline-block text-xs underline"
-          >
-            Check Blob config →
-          </a>
+          <p className="mt-2 text-xs opacity-90">
+            Check .env.local: use Supabase (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY) and create a public “media” bucket in Supabase Storage.
+          </p>
         </div>
       )}
       {uploadSuccess && (
@@ -150,12 +319,8 @@ export default function AdminMediaPage() {
                   key={item.id}
                   className="group overflow-hidden rounded-lg border bg-muted/30"
                 >
-                  <div className="relative aspect-video">
-                    <img
-                      src={item.url}
-                      alt={item.name}
-                      className="h-full w-full object-cover"
-                    />
+                  <div className="relative aspect-video min-h-[140px] bg-muted/50">
+                    <MediaThumbnail src={item.url} alt={item.name} dataUrl={item.dataUrl} />
                     <Button
                       variant="destructive"
                       size="icon"

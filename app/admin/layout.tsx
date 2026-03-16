@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
@@ -37,43 +38,50 @@ const sidebarItems = [
   { icon: Settings, labelKey: "admin.settings", href: "/admin/settings" },
 ];
 
+const logoIcon = (
+  <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg">
+    <Image src="/logo.svg" alt="" width={20} height={20} className="object-contain" />
+  </span>
+);
+
 function AdminSidebarLogo() {
   const { open } = useSidebar();
   const { t, dir } = useI18n();
   if (!open) return <AdminSidebarLogoIcon />;
-  const logoBlock = (
-    <div className="h-5 w-6 bg-primary rounded-br-lg rounded-tr-sm rounded-tl-lg rounded-bl-sm flex-shrink-0" />
-  );
   const label = (
     <motion.span
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="font-medium text-foreground dark:text-white whitespace-pre"
     >
-      {t("admin.panel")}
+      Nersyan Taiba
     </motion.span>
   );
   return (
     <Link
       href="/admin"
       className={cn(
-        "font-normal flex items-center gap-2 text-sm text-foreground py-1 relative z-20",
-        dir === "rtl" && "flex-row-reverse"
+        "font-normal flex items-center gap-3 py-2 px-2 rounded-lg min-h-[2.5rem] text-sm text-foreground relative z-20 w-full",
+        dir === "rtl" ? "flex-row-reverse justify-end" : "justify-start"
       )}
     >
-      {logoBlock}
+      {logoIcon}
       {label}
     </Link>
   );
 }
 
 function AdminSidebarLogoIcon() {
+  const { dir } = useI18n();
   return (
     <Link
       href="/admin"
-      className="font-normal flex space-x-2 items-center text-sm text-foreground py-1 relative z-20"
+      className={cn(
+        "font-normal flex items-center justify-start gap-3 py-2 px-2 rounded-lg min-h-[2.5rem] text-sm text-foreground relative z-20 w-full",
+        dir === "rtl" && "flex-row-reverse"
+      )}
     >
-      <div className="h-5 w-6 bg-primary rounded-br-lg rounded-tr-sm rounded-tl-lg rounded-bl-sm flex-shrink-0" />
+      {logoIcon}
     </Link>
   );
 }
@@ -116,10 +124,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className={cn("flex min-h-screen bg-secondary/30", dir === "rtl" && "flex-row-reverse")} dir={dir}>
+    <div className={cn("flex min-h-screen w-full bg-secondary/30", dir === "rtl" && "flex-row-reverse")} dir={dir}>
       <Sidebar open={open} setOpen={setOpen}>
-        <div className="flex flex-1 min-w-0 flex-col md:flex-row">
-          <SidebarBody className="flex flex-col justify-between gap-6 flex-shrink-0 border-e border-stone-200/80 dark:border-neutral-700">
+        <SidebarBody className="flex flex-col justify-between gap-6 flex-shrink-0 border-e border-stone-200/80 dark:border-neutral-700">
             <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden min-h-0">
               <AdminSidebarLogo />
               <div className="mt-6 flex flex-col gap-1">
@@ -180,10 +187,15 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               </button>
             </div>
           </SidebarBody>
-
-          <main className="flex-1 min-w-0 p-4 lg:p-6 overflow-auto">{children}</main>
-        </div>
       </Sidebar>
+      <main className="flex min-w-[280px] flex-1 flex-col overflow-auto bg-background p-4 lg:p-6" aria-label="Main content">
+        {pathname !== "/admin/login" && (
+          <p className="mb-2 text-xs text-muted-foreground" aria-hidden>
+            {pathname}
+          </p>
+        )}
+        {children}
+      </main>
     </div>
   );
 }

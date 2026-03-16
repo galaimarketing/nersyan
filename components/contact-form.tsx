@@ -64,8 +64,8 @@ export function ContactForm() {
                   </h3>
                   <p className="text-muted-foreground">
                     {language === "ar"
-                      ? "شارع الملك فيصل، المدينة المنورة، المملكة العربية السعودية"
-                      : "King Faisal Street, Madinah, Saudi Arabia"}
+                      ? "نرسيان طيبة للشقق الفندقية، العنابس، المدينة المنورة 42312، المملكة العربية السعودية"
+                      : "Nersyan Taiba Hotel Apartments, Al Anabis, Madinah 42312, Saudi Arabia"}
                   </p>
                 </div>
               </div>

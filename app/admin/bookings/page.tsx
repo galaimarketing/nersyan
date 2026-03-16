@@ -1,7 +1,12 @@
 import { Suspense } from "react";
 import BookingsPageContent from "./BookingsPageContent";
 
-export default function BookingsPage() {
+export default async function BookingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  await searchParams;
   return (
     <Suspense
       fallback={

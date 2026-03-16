@@ -465,12 +465,18 @@ export default function RoomsPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredRooms.map((room) => (
             <Card key={room.id} className="overflow-hidden pt-0">
-              <div className="relative aspect-video">
-                <img
-                  src={room.image}
-                  alt={`Room ${room.number}`}
-                  className="h-full w-full object-cover"
-                />
+              <div className="relative aspect-video bg-muted">
+                {room.image ? (
+                  <img
+                    src={room.image}
+                    alt={`Room ${room.number}`}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                    <span className="text-sm">No image</span>
+                  </div>
+                )}
                 <div className="absolute end-2 top-2">
                   {getStatusBadge(room.status)}
                 </div>

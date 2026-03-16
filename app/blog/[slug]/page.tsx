@@ -1,17 +1,14 @@
 "use client";
 
-import { useEffect } from "react";
+import { use, useEffect } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
 import { I18nProvider, useI18n } from "@/lib/i18n";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { usePublicBlogPostBySlug } from "@/lib/public-blog";
 
-function BlogPostContent() {
-  const params = useParams();
-  const slug = typeof params.slug === "string" ? params.slug : "";
+function BlogPostContent({ slug }: { slug: string }) {
   const { language, dir } = useI18n();
   const post = usePublicBlogPostBySlug(slug);
 
@@ -91,10 +88,16 @@ function BlogPostContent() {
   );
 }
 
-export default function BlogSlugPage() {
+export default function BlogSlugPage({
+  params,
+}: {
+  params: Promise<{ slug?: string }>;
+}) {
+  const resolved = use(params);
+  const slug = typeof resolved.slug === "string" ? resolved.slug : "";
   return (
     <I18nProvider>
-      <BlogPostContent />
+      <BlogPostContent slug={slug} />
     </I18nProvider>
   );
 }

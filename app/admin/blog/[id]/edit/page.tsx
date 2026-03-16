@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { use, useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,11 +19,15 @@ import { useAdminData } from "@/components/admin-data-provider";
 import { RichTextToolbar } from "@/components/rich-text-toolbar";
 import { useI18n } from "@/lib/i18n";
 
-export default function EditBlogPostPage() {
+export default function EditBlogPostPage({
+  params,
+}: {
+  params: Promise<{ id?: string }>;
+}) {
   const { t } = useI18n();
   const router = useRouter();
-  const params = useParams();
-  const id = typeof params.id === "string" ? params.id : "";
+  const resolved = use(params);
+  const id = typeof resolved.id === "string" ? resolved.id : "";
   const { data, getBlogPostById, updateBlogPost } = useAdminData();
   const post = getBlogPostById(id);
 

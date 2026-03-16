@@ -53,6 +53,25 @@ export interface MediaItem {
   name: string;
   url: string;
   type: string;
+  /** Optional inline data URL so the image displays even when Blob URL fails. */
+  dataUrl?: string;
+}
+
+function normalizeMediaItem(m: unknown, index: number): MediaItem {
+  const any = m as Record<string, unknown>;
+  const id = String(any?.id ?? "").trim() || `m-${index}-${Math.random().toString(36).slice(2, 9)}`;
+  return {
+    id,
+    name: String(any?.name ?? "").trim() || "image",
+    url: String(any?.url ?? "").trim(),
+    type: String(any?.type ?? "image/jpeg"),
+    dataUrl: typeof any?.dataUrl === "string" && any.dataUrl.startsWith("data:") ? any.dataUrl : undefined,
+  };
+}
+
+export function normalizeMedia(media: unknown): MediaItem[] {
+  if (!Array.isArray(media)) return [];
+  return media.map((m, i) => normalizeMediaItem(m, i));
 }
 
 export interface AdminNotification {
@@ -119,7 +138,7 @@ export function loadAdminData(): AdminData {
       guests: parsed.guests ?? [],
       rooms: parsed.rooms ?? [],
       blogPosts,
-      media: parsed.media ?? [],
+      media: normalizeMedia(parsed.media),
       notifications: parsed.notifications ?? [],
     };
   } catch {
