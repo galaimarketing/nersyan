@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
+import { upload } from "@vercel/blob/client";
 import { Upload, ArrowLeft, ImageIcon, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ export default function AdminMediaPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -24,26 +26,31 @@ export default function AdminMediaPage() {
     if (!imageFiles.length) return;
 
     setUploadError(null);
+    setUploadSuccess(null);
     setUploading(true);
 
     try {
-      const formData = new FormData();
-      imageFiles.forEach((file) => formData.append("file", file));
-
-      const res = await fetch("/api/admin/upload", { method: "POST", body: formData });
-      const json = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setUploadError(json.error || "Upload failed");
-        return;
-      }
-      if (json.files?.length) {
-        json.files.forEach((f: { name: string; url: string; type: string }) => {
-          addMedia({ name: f.name, url: f.url, type: f.type });
+      const uploaded: { name: string; url: string; type: string }[] = [];
+      for (const file of imageFiles) {
+        const blob = await upload(file.name, file, {
+          access: "public",
+          handleUploadUrl: "/api/admin/upload",
         });
+        uploaded.push({ name: file.name, url: blob.url, type: file.type });
+        addMedia({ name: file.name, url: blob.url, type: file.type });
       }
-    } catch {
-      setUploadError("Upload failed");
+      if (uploaded.length > 0) {
+        setUploadSuccess(
+          uploaded.length === 1
+            ? `"${uploaded[0].name}" uploaded.`
+            : `${uploaded.length} images uploaded.`
+        );
+        setTimeout(() => setUploadSuccess(null), 4000);
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Upload failed";
+      setUploadError(msg);
+      console.error("Upload error:", e);
     } finally {
       setUploading(false);
     }
@@ -77,6 +84,11 @@ export default function AdminMediaPage() {
       {uploadError && (
         <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-2 text-sm text-destructive">
           {uploadError}
+        </div>
+      )}
+      {uploadSuccess && (
+        <div className="rounded-md border border-green-500/50 bg-green-500/10 px-4 py-2 text-sm text-green-700 dark:text-green-400">
+          {uploadSuccess}
         </div>
       )}
 
