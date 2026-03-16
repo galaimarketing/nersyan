@@ -29,7 +29,10 @@ export default function AdminMediaPage() {
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files?.length) return;
+    if (!files?.length) {
+      setUploadError(null);
+      return;
+    }
     e.target.value = "";
 
     setUploadError(null);
@@ -42,15 +45,20 @@ export default function AdminMediaPage() {
 
     try {
       const uploaded: { name: string; url: string; type: string }[] = [];
-      for (const file of fileList) {
-        const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_") || "image";
-        const pathname = `media/${Date.now()}-${safeName}`;
+      for (let i = 0; i < fileList.length; i++) {
+        const file = fileList[i];
+        const safeName = (file.name || "image").replace(/[^a-zA-Z0-9.-]/g, "_");
+        const pathname = `media/${Date.now()}-${i}-${safeName}`;
         const contentType = getImageType(file);
         const blob = await upload(pathname, file, {
           access: "public",
           handleUploadUrl: uploadUrl,
           contentType,
         });
+        if (!blob?.url) {
+          setUploadError("Upload returned no URL. Check browser console.");
+          return;
+        }
         uploaded.push({ name: file.name, url: blob.url, type: contentType });
         addMedia({ name: file.name, url: blob.url, type: contentType });
       }
@@ -60,16 +68,13 @@ export default function AdminMediaPage() {
             ? `"${uploaded[0].name}" uploaded.`
             : `${uploaded.length} images uploaded.`
         );
-        setTimeout(() => setUploadSuccess(null), 4000);
+        setTimeout(() => setUploadSuccess(null), 6000);
       }
     } catch (e) {
-      const err = e instanceof Error ? e : new Error(String(e));
-      let msg = err.message;
-      if (msg.includes("503") || msg.includes("Blob storage not configured")) {
-        msg = "Blob storage not configured. In Vercel: connect a Blob store to this project and add BLOB_READ_WRITE_TOKEN, then redeploy.";
-      }
+      const msg =
+        (e instanceof Error ? e.message : null) || String(e) || "Upload failed. Open DevTools (F12) → Console for details.";
       setUploadError(msg);
-      console.error("Upload error:", err);
+      console.error("Upload error:", e);
     } finally {
       setUploading(false);
     }
@@ -77,6 +82,11 @@ export default function AdminMediaPage() {
 
   return (
     <div className="space-y-6">
+      {uploading && (
+        <div className="rounded-md border border-primary/50 bg-primary/10 px-4 py-3 text-sm text-foreground">
+          Uploading… Please wait. Do not close the page.
+        </div>
+      )}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-semibold text-foreground">{t("admin.mediaTitle")}</h2>
