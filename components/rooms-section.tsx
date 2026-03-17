@@ -25,7 +25,7 @@ export function RoomsSection() {
   const displayRooms = rooms.slice(0, 3);
 
   return (
-    <section id="rooms" className="bg-secondary/30 py-20" dir={dir}>
+    <section id="rooms" className="bg-background py-20" dir={dir}>
       <div className="mx-auto max-w-7xl px-6 lg:px-12">
         {/* Section Header */}
         <div className="mb-12 text-center">

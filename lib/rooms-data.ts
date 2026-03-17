@@ -5,6 +5,7 @@ export interface Room {
   descriptionAr: string;
   descriptionEn: string;
   price: number;
+  originalPrice?: number;
   image: string;
   images?: string[];
   capacity: number;

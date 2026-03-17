@@ -30,7 +30,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAdminData } from "@/components/admin-data-provider";
-import { isRoomBooked } from "@/lib/admin-store";
 import type { AdminRoom, AdminData } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
 import { CurrencySymbol } from "@/components/currency-symbol";
@@ -55,6 +54,12 @@ function EditRoomForm({
   const [number, setNumber] = useState(room.number);
   const [type, setType] = useState(room.type);
   const [price, setPrice] = useState(String(room.price));
+  const [originalPrice, setOriginalPrice] = useState(
+    room.originalPrice && room.originalPrice > room.price ? String(room.originalPrice) : ""
+  );
+  const [size, setSize] = useState(room.size != null ? String(room.size) : "");
+  const [seoTitle, setSeoTitle] = useState(room.seoTitle ?? "");
+  const [seoDescription, setSeoDescription] = useState(room.seoDescription ?? "");
   const [capacity, setCapacity] = useState(String(room.capacity));
   const [imageIds, setImageIds] = useState<string[]>(
     () => {
@@ -68,6 +73,10 @@ function EditRoomForm({
     setNumber(room.number);
     setType(room.type);
     setPrice(String(room.price));
+    setOriginalPrice(room.originalPrice && room.originalPrice > room.price ? String(room.originalPrice) : "");
+    setSize(room.size != null ? String(room.size) : "");
+    setSeoTitle(room.seoTitle ?? "");
+    setSeoDescription(room.seoDescription ?? "");
     setCapacity(String(room.capacity));
     setStatus(room.status);
     const existingUrls = room.images && room.images.length > 0 ? room.images : [room.image].filter(Boolean);
@@ -80,13 +89,19 @@ function EditRoomForm({
         e.preventDefault();
         const priceNum = parseInt(price, 10);
         const capacityNum = parseInt(capacity, 10);
-        if (!number.trim() || isNaN(priceNum) || priceNum < 0 || isNaN(capacityNum) || capacityNum < 1) return;
+        const sizeNum = size ? parseInt(size, 10) : 0;
+        const originalNum = originalPrice ? parseInt(originalPrice, 10) : undefined;
+        if (!number.trim() || isNaN(priceNum) || priceNum < 0 || isNaN(capacityNum) || capacityNum < 1 || (size && isNaN(sizeNum))) return;
         const selectedMedia = data.media.filter((m) => imageIds.includes(m.id));
         const imageUrls = selectedMedia.map((m) => m.url);
         updateRoom(room.id, {
           number: number.trim(),
           type,
           price: priceNum,
+          originalPrice: originalNum && originalNum > priceNum ? originalNum : undefined,
+          size: sizeNum > 0 ? sizeNum : undefined,
+          seoTitle: seoTitle.trim() || undefined,
+          seoDescription: seoDescription.trim() || undefined,
           capacity: capacityNum,
           status,
           image: imageUrls[0] ?? room.image,
@@ -146,6 +161,30 @@ function EditRoomForm({
           />
         </div>
       </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="edit-originalPrice">{t("admin.originalPriceLabel")}</Label>
+          <Input
+            id="edit-originalPrice"
+            type="number"
+            min={0}
+            placeholder="eg. 450"
+            value={originalPrice}
+            onChange={(e) => setOriginalPrice(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="edit-size">{t("admin.sizeLabel")}</Label>
+          <Input
+            id="edit-size"
+            type="number"
+            min={0}
+            placeholder="eg. 30"
+            value={size}
+            onChange={(e) => setSize(e.target.value)}
+          />
+        </div>
+      </div>
       <div className="space-y-2">
         <Label>{t("admin.status")}</Label>
         <Select value={status} onValueChange={(v) => setStatus(v as "available" | "occupied" | "maintenance")}>
@@ -192,6 +231,25 @@ function EditRoomForm({
           </div>
         )}
       </div>
+      <div className="space-y-2">
+        <Label htmlFor="edit-seoTitle">{t("admin.seoTitleLabel")}</Label>
+        <Input
+          id="edit-seoTitle"
+          placeholder={t("admin.seoTitlePlaceholder")}
+          value={seoTitle}
+          onChange={(e) => setSeoTitle(e.target.value)}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="edit-seoDescription">{t("admin.seoDescriptionLabel")}</Label>
+        <textarea
+          id="edit-seoDescription"
+          className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+          placeholder={t("admin.seoDescriptionPlaceholder")}
+          value={seoDescription}
+          onChange={(e) => setSeoDescription(e.target.value)}
+        />
+      </div>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onClose}>
           {t("admin.cancel")}
@@ -212,7 +270,9 @@ export default function RoomsPage() {
   const [newNumber, setNewNumber] = useState("");
   const [newType, setNewType] = useState("Standard Room");
   const [newPrice, setNewPrice] = useState("");
+  const [newOriginalPrice, setNewOriginalPrice] = useState("");
   const [newCapacity, setNewCapacity] = useState("");
+  const [newSize, setNewSize] = useState("");
   const [newImageIds, setNewImageIds] = useState<string[]>([]);
   const [editRoomId, setEditRoomId] = useState<string | null>(null);
 
@@ -222,11 +282,14 @@ export default function RoomsPage() {
 
   const editRoom = editRoomId ? data.rooms.find((r) => r.id === editRoomId) : null;
   const rooms = data.rooms;
+  /** Use the stored status from admin (no automatic override from bookings). */
+  const getEffectiveStatus = (room: AdminRoom) => room.status;
   const filteredRooms = rooms.filter((room) => {
     const matchesSearch =
       room.number.toLowerCase().includes(search.toLowerCase()) ||
       room.type.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = filterStatus === "all" || room.status === filterStatus;
+    const effectiveStatus = getEffectiveStatus(room);
+    const matchesStatus = filterStatus === "all" || effectiveStatus === filterStatus;
     return matchesSearch && matchesStatus;
   });
 
@@ -273,7 +336,7 @@ export default function RoomsPage() {
               {t("admin.addRoom")}
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-lg">
+          <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{t("admin.addNewRoomTitle")}</DialogTitle>
               <DialogDescription>{t("admin.enterNewRoomDetails")}</DialogDescription>
@@ -282,14 +345,18 @@ export default function RoomsPage() {
               onSubmit={(e) => {
                 e.preventDefault();
                 const price = parseInt(newPrice, 10);
+                const original = newOriginalPrice ? parseInt(newOriginalPrice, 10) : undefined;
                 const capacity = parseInt(newCapacity, 10);
-                if (!newNumber.trim() || isNaN(price) || price < 0 || isNaN(capacity) || capacity < 1) return;
+                const size = newSize ? parseInt(newSize, 10) : 0;
+                if (!newNumber.trim() || isNaN(price) || price < 0 || isNaN(capacity) || capacity < 1 || (newSize && isNaN(size))) return;
                 const selectedMedia = data.media.filter((m) => newImageIds.includes(m.id));
                 const imageUrls = selectedMedia.map((m) => m.url);
                 addRoom({
                   number: newNumber.trim(),
                   type: newType,
                   price,
+                  originalPrice: original && original > price ? original : undefined,
+                  size: size > 0 ? size : undefined,
                   capacity,
                   status: "available",
                   image: imageUrls[0] ?? "",
@@ -297,7 +364,9 @@ export default function RoomsPage() {
                 });
                 setNewNumber("");
                 setNewPrice("");
+                setNewOriginalPrice("");
                 setNewCapacity("");
+                setNewSize("");
                 setNewImageIds([]);
                 setIsAddDialogOpen(false);
               }}
@@ -353,6 +422,30 @@ export default function RoomsPage() {
                     value={newCapacity}
                     onChange={(e) => setNewCapacity(e.target.value)}
                     required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="originalPrice">{t("admin.originalPriceLabel")}</Label>
+                  <Input
+                    id="originalPrice"
+                    type="number"
+                    min={0}
+                    placeholder="eg. 450"
+                    value={newOriginalPrice}
+                    onChange={(e) => setNewOriginalPrice(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="size">{t("admin.sizeLabel")}</Label>
+                  <Input
+                    id="size"
+                    type="number"
+                    min={0}
+                    placeholder="eg. 30"
+                    value={newSize}
+                    onChange={(e) => setNewSize(e.target.value)}
                   />
                 </div>
               </div>
@@ -431,7 +524,7 @@ export default function RoomsPage() {
 
       {/* Edit Room Dialog */}
       <Dialog open={!!editRoomId} onOpenChange={(open) => !open && setEditRoomId(null)}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t("admin.editRoom")}</DialogTitle>
             <DialogDescription>{t("admin.updateRoomDetails")}</DialogDescription>
@@ -478,7 +571,7 @@ export default function RoomsPage() {
                   </div>
                 )}
                 <div className="absolute end-2 top-2">
-                  {getStatusBadge(room.status)}
+                  {getStatusBadge(getEffectiveStatus(room))}
                 </div>
               </div>
               <CardContent className="p-4">

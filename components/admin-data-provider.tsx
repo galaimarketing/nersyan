@@ -10,8 +10,6 @@ import {
   MediaItem,
   AdminNotification,
   defaultAdminData,
-  loadAdminData,
-  saveAdminData,
   generateId,
   normalizeMedia,
 } from "@/lib/admin-store";
@@ -47,38 +45,80 @@ type AdminDataContextValue = {
 const AdminDataContext = createContext<AdminDataContextValue | null>(null);
 
 const ADMIN_DATA_API = "/api/admin/data";
+const LEGACY_STORAGE_KEY = "nersian-admin-data";
+
+function mergeById<T extends { id: string }>(fromApi: T[], fromLocal: T[]): T[] {
+  const map = new Map<string, T>();
+  for (const item of fromLocal) map.set(item.id, item);
+  for (const item of fromApi) map.set(item.id, item);
+  return Array.from(map.values());
+}
+
+function mergeAdminData(apiData: AdminData, localData: AdminData): AdminData {
+  return {
+    bookings: mergeById(apiData.bookings ?? [], localData.bookings ?? []),
+    guests: mergeById(apiData.guests ?? [], localData.guests ?? []),
+    rooms: mergeById(apiData.rooms ?? [], localData.rooms ?? []),
+    blogPosts: mergeById(apiData.blogPosts ?? [], localData.blogPosts ?? []),
+    media: normalizeMedia(mergeById(apiData.media ?? [], localData.media ?? [])),
+    notifications: mergeById(apiData.notifications ?? [], localData.notifications ?? []),
+  };
+}
 
 export function AdminDataProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<AdminData>(defaultAdminData);
   const [initialized, setInitialized] = useState(false);
 
-  // Load: prefer API, fallback to localStorage
+  // Load: always from API (DB). One-time migrate legacy localStorage if present.
   useEffect(() => {
     let cancelled = false;
-    fetch(ADMIN_DATA_API)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((apiData: AdminData | null) => {
+    (async () => {
+      try {
+        const res = await fetch(ADMIN_DATA_API);
+        const apiData = res.ok ? ((await res.json()) as AdminData) : null;
         if (cancelled) return;
+
         if (apiData && Array.isArray(apiData.bookings)) {
-          setData({
+          const normalizedApi: AdminData = {
             bookings: apiData.bookings ?? [],
             guests: apiData.guests ?? [],
             rooms: apiData.rooms ?? [],
             blogPosts: apiData.blogPosts ?? [],
             media: normalizeMedia(apiData.media),
             notifications: apiData.notifications ?? [],
-          });
+          };
+          setData(normalizedApi);
+
+          // One-time migration from legacy localStorage
+          if (typeof window !== "undefined") {
+            const raw = window.localStorage.getItem(LEGACY_STORAGE_KEY);
+            if (raw) {
+              try {
+                const local = JSON.parse(raw) as AdminData;
+                const merged = mergeAdminData(normalizedApi, local);
+                if (JSON.stringify(merged) !== JSON.stringify(normalizedApi)) {
+                  await fetch(ADMIN_DATA_API, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(merged),
+                  });
+                  setData(merged);
+                }
+                window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+              } catch {
+                // ignore invalid legacy data
+              }
+            }
+          }
         } else {
-          setData(loadAdminData());
+          setData(defaultAdminData);
         }
-        setInitialized(true);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setData(loadAdminData());
-          setInitialized(true);
-        }
-      });
+      } catch {
+        if (!cancelled) setData(defaultAdminData);
+      } finally {
+        if (!cancelled) setInitialized(true);
+      }
+    })();
     return () => {
       cancelled = true;
     };
@@ -103,10 +143,9 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Persist: always localStorage (offline fallback), and API when available
+  // Persist: DB only (no localStorage writes)
   useEffect(() => {
     if (!initialized) return;
-    saveAdminData(data);
     const t = setTimeout(() => {
       fetch(ADMIN_DATA_API, {
         method: "PATCH",
@@ -134,11 +173,19 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
         type: "booking",
         link: "/admin/bookings",
       };
-      setData((d) => ({
-        ...d,
-        bookings: [...d.bookings, created],
-        notifications: [notif, ...(d.notifications ?? [])],
-      }));
+      const norm = (s: string) => String(s ?? "").trim();
+      setData((d) => {
+        const nextBookings = [...d.bookings, created];
+        const nextRooms = d.rooms.map((r) =>
+          norm(r.number) === norm(created.roomNumber) ? { ...r, status: "occupied" as const } : r
+        );
+        return {
+          ...d,
+          bookings: nextBookings,
+          rooms: nextRooms,
+          notifications: [notif, ...(d.notifications ?? [])],
+        };
+      });
       return created;
     },
     []

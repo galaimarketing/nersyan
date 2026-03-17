@@ -15,18 +15,14 @@ import {
   LogOut,
   Bell,
   Languages,
+  Laptop,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { AdminDataProvider, useAdminData } from "@/components/admin-data-provider";
 import { I18nProvider, useI18n, AdminLangSync } from "@/lib/i18n";
-import {
-  Sidebar,
-  SidebarBody,
-  SidebarLink,
-  useSidebar,
-} from "@/components/ui/sidebar";
+import { Sidebar, SidebarBody, SidebarLink, useSidebar } from "@/components/ui/sidebar";
 
 const sidebarItems = [
   { icon: LayoutDashboard, labelKey: "admin.panel", href: "/admin" },
@@ -47,37 +43,44 @@ const logoIcon = (
 function AdminSidebarLogo() {
   const { open } = useSidebar();
   const { t, dir } = useI18n();
-  if (!open) return <AdminSidebarLogoIcon />;
-  const label = (
-    <motion.span
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="font-medium text-foreground dark:text-white whitespace-pre"
-    >
-      Nersyan Taiba
-    </motion.span>
-  );
   return (
-    <Link
-      href="/admin"
+    <div
       className={cn(
-        "font-normal flex items-center gap-3 py-2 px-2 rounded-lg min-h-[2.5rem] text-sm text-foreground relative z-20 w-full",
+        "relative flex items-center gap-2 py-1 px-2 rounded-lg text-sm text-foreground z-20 w-full",
         dir === "rtl" ? "flex-row-reverse justify-end" : "justify-start"
       )}
     >
-      {logoIcon}
-      {label}
-    </Link>
+      <Link
+        href="/admin"
+        className={cn(
+          "font-normal flex items-center gap-3 py-1 px-1 rounded-lg min-h-[2.5rem]",
+          dir === "rtl" ? "flex-row-reverse justify-end" : "justify-start"
+        )}
+      >
+        {logoIcon}
+        {/* Show brand text only when open; icon + arrow still visible when closed */}
+        {open && (
+          <motion.span
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="font-medium text-foreground dark:text-white whitespace-pre"
+          >
+            Nersyan Taiba
+          </motion.span>
+        )}
+      </Link>
+    </div>
   );
 }
 
+// Fallback (not currently used, but kept for safety)
 function AdminSidebarLogoIcon() {
   const { dir } = useI18n();
   return (
     <Link
       href="/admin"
       className={cn(
-        "font-normal flex items-center justify-start gap-3 py-2 px-2 rounded-lg min-h-[2.5rem] text-sm text-foreground relative z-20 w-full",
+        "font-normal flex items-center justify-center gap-3 py-2 px-2 rounded-lg min-h-[2.5rem] text-sm text-foreground relative z-20 w-full",
         dir === "rtl" && "flex-row-reverse"
       )}
     >
@@ -124,9 +127,33 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className={cn("flex min-h-screen w-full bg-secondary/30", dir === "rtl" && "flex-row-reverse")} dir={dir}>
-      <Sidebar open={open} setOpen={setOpen}>
-        <SidebarBody className="flex flex-col justify-between gap-6 flex-shrink-0 border-e border-stone-200/80 dark:border-neutral-700">
+    <>
+      {/* Mobile: show "use desktop" message only */}
+      <div
+        className={cn(
+          "flex min-h-screen w-full flex-col items-center justify-center gap-6 bg-background p-6 text-center md:hidden"
+        )}
+        dir={dir}
+      >
+        <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+          <Laptop className="h-10 w-10" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-lg font-semibold text-foreground">{t("admin.useDesktopOnly")}</h2>
+          <p className="text-sm text-muted-foreground">{t("admin.useDesktopOnlyHint")}</p>
+        </div>
+      </div>
+
+      {/* Desktop: sidebar + main content */}
+      <div
+        className={cn(
+          "hidden min-h-screen w-full bg-secondary/30 md:flex",
+          dir === "rtl" && "flex-row-reverse"
+        )}
+        dir={dir}
+      >
+        <Sidebar open={open} setOpen={setOpen}>
+          <SidebarBody className="flex h-full flex-col justify-between gap-6 border-e border-stone-200/80 dark:border-neutral-700">
             <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden min-h-0">
               <AdminSidebarLogo />
               <div className="mt-6 flex flex-col gap-1">
@@ -141,7 +168,6 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                     onClick={() => setOpen(false)}
                   />
                 ))}
-                {/* Language and Notifications just under Settings */}
                 <button
                   type="button"
                   className="flex items-center justify-start gap-3 py-2 px-2 rounded-lg min-h-[2.5rem] w-full text-left text-neutral-700 dark:text-neutral-200 hover:bg-stone-200/80 dark:hover:bg-stone-700/50"
@@ -187,16 +213,20 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               </button>
             </div>
           </SidebarBody>
-      </Sidebar>
-      <main className="flex min-w-[280px] flex-1 flex-col overflow-auto bg-background p-4 lg:p-6" aria-label="Main content">
-        {pathname !== "/admin/login" && (
-          <p className="mb-2 text-xs text-muted-foreground" aria-hidden>
-            {pathname}
-          </p>
-        )}
-        {children}
-      </main>
-    </div>
+        </Sidebar>
+        <main
+          className="flex min-w-0 flex-1 flex-col overflow-auto bg-background p-4 lg:p-6"
+          aria-label="Main content"
+        >
+          {pathname !== "/admin/login" && (
+            <p className="mb-2 text-xs text-muted-foreground" aria-hidden>
+              {pathname}
+            </p>
+          )}
+          {children}
+        </main>
+      </div>
+    </>
   );
 }
 

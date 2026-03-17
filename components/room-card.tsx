@@ -22,6 +22,8 @@ export function RoomCard({ room, onBook }: RoomCardProps) {
   const images = room.images && room.images.length > 0 ? room.images : [room.image];
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const hasDiscount = room.originalPrice != null && room.originalPrice > room.price;
+
   const name = language === "ar" ? room.nameAr : room.nameEn;
   const description = language === "ar" ? room.descriptionAr : room.descriptionEn;
 
@@ -82,10 +84,17 @@ export function RoomCard({ room, onBook }: RoomCardProps) {
 
           {/* Price Tag */}
           <div className="absolute bottom-4 end-4 rounded-lg bg-background/90 px-3 py-2 backdrop-blur-sm">
-            <p className="text-lg font-bold text-primary">
-              {room.price} <CurrencySymbol />
-            </p>
-            <p className="text-xs text-muted-foreground">{t("booking.perNight")}</p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-lg font-bold text-primary">
+                {room.price} <CurrencySymbol />
+              </p>
+              {hasDiscount && (
+                <p className="text-sm text-muted-foreground line-through">
+                  {room.originalPrice} <CurrencySymbol />
+                </p>
+              )}
+            </div>
+            <p className="mt-0.5 text-xs text-muted-foreground">{t("booking.perNight")}</p>
           </div>
         </div>
       </Link>
@@ -131,7 +140,7 @@ export function RoomCard({ room, onBook }: RoomCardProps) {
 
         {/* Action Button */}
         <Button
-          className="w-full"
+          className="w-full bg-[var(--ring)] text-primary-foreground shadow-md hover:bg-[var(--ring)]/90 hover:shadow-lg transition-all"
           disabled={!room.available}
           onClick={() => onBook?.(room)}
         >

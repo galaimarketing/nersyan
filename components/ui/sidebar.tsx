@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import Link, { LinkProps } from "next/link";
 import React, { useState, createContext, useContext } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Links {
   label: string;
@@ -89,17 +89,34 @@ export const DesktopSidebar = ({
   return (
     <motion.div
       className={cn(
-        "h-full py-4 hidden md:flex md:flex-col bg-stone-100/90 dark:bg-neutral-800 flex-shrink-0 border-e border-stone-200/80 dark:border-neutral-700 overflow-hidden",
-        "px-3 min-w-[72px]",
+        "relative sticky top-0 h-screen py-4 hidden md:flex md:flex-col bg-stone-100/90 dark:bg-neutral-800 flex-shrink-0 border-e border-stone-200/80 dark:border-neutral-700 overflow-visible",
+        "px-3 min-w-[72px] self-start",
         className
       )}
       animate={{
         width: animate ? (open ? "240px" : "72px") : "240px",
       }}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
       {...props}
     >
+      {/* Edge toggle button, centered vertically, always visible (half over sidebar, half over content) */}
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className={cn(
+          "absolute top-1/2 -translate-y-1/2 z-30 inline-flex h-8 w-8 items-center justify-center rounded-full border shadow-md",
+          "border-stone-200 bg-stone-50 text-neutral-700 hover:bg-stone-100",
+          "dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:hover:bg-neutral-800",
+          // LTR: stick to right edge of sidebar and overflow into content
+          "right-0 translate-x-1/2"
+        )}
+        aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
+      >
+        {open ? (
+          <ChevronLeft className="h-4 w-4" />
+        ) : (
+          <ChevronRight className="h-4 w-4" />
+        )}
+      </button>
       {children}
     </motion.div>
   );

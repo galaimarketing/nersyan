@@ -20,6 +20,8 @@ function RoomDetailsContent({ room }: { room: Room }) {
   );
   const [isBookingOpen, setIsBookingOpen] = useState(false);
 
+  const hasDiscount = room.originalPrice != null && room.originalPrice > room.price;
+
   const name = language === "ar" ? room.nameAr : room.nameEn;
   const description = language === "ar" ? room.descriptionAr : room.descriptionEn;
 
@@ -143,12 +145,19 @@ function RoomDetailsContent({ room }: { room: Room }) {
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">
                     {language === "ar" ? "السعر لليلة" : "Price per night"}
                   </p>
-                  <p className="text-2xl font-bold text-primary">
-                    {room.price} <CurrencySymbol />
-                    <span className="ms-1 text-xs font-normal text-muted-foreground">
-                      / {t("booking.perNight")}
-                    </span>
-                  </p>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-2xl font-bold text-primary">
+                      {room.price} <CurrencySymbol />
+                      <span className="ms-1 text-xs font-normal text-muted-foreground">
+                        / {t("booking.perNight")}
+                      </span>
+                    </p>
+                    {hasDiscount && (
+                      <p className="text-sm text-muted-foreground line-through">
+                        {room.originalPrice} <CurrencySymbol />
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <Button
                   size="lg"

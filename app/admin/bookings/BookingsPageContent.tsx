@@ -106,8 +106,10 @@ export default function BookingsPageContent() {
 
   const totalBookings = data.bookings.length;
   const confirmedCount = data.bookings.filter((b) => b.status === "confirmed").length;
-  const pendingCount = data.bookings.filter((b) => b.status === "pending").length;
-  const revenue = data.bookings.filter((b) => b.paymentStatus === "paid").reduce((sum, b) => sum + b.amount, 0);
+  const pendingCount = data.bookings.filter((b) => b.paymentStatus === "pending" && b.status !== "cancelled").length;
+  const revenue = data.bookings
+    .filter((b) => b.paymentStatus === "paid" && b.status !== "cancelled")
+    .reduce((sum, b) => sum + b.amount, 0);
 
   const handleCreateBooking = (e: React.FormEvent) => {
     e.preventDefault();
@@ -400,65 +402,91 @@ export default function BookingsPageContent() {
                 <Link href="/admin/bookings">{t("admin.showAllBookings")}</Link>
               </Button>
             </div>
-            <div className="mb-6 grid gap-2 rounded-lg border bg-background/50 p-4 sm:grid-cols-2">
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">{guestFilter.name}</span>
+            <div className="mb-6 grid grid-cols-1 gap-4 rounded-lg border bg-background/50 p-4 sm:grid-cols-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium uppercase text-muted-foreground">{t("admin.guest")}</p>
+                  <p className="truncate font-medium">{guestFilter.name}</p>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{guestFilter.email || "—"}</span>
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium uppercase text-muted-foreground">Email</p>
+                  <p className="truncate text-sm">{guestFilter.email || "—"}</p>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{guestFilter.phone || "—"}</span>
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium uppercase text-muted-foreground">{t("admin.phone")}</p>
+                  <p className="truncate text-sm">{guestFilter.phone || "—"}</p>
+                </div>
               </div>
             </div>
             <p className="mb-3 text-sm font-medium text-foreground">{t("admin.bookedRooms")}</p>
-            <div className="space-y-4">
-              {bookingsByGuest.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t("admin.noBookingsForGuest")}</p>
-              ) : (
-                bookingsByGuest.map((booking) => {
-                  const roomRecord = data.rooms.find(
-                    (r) => r.number.trim() === booking.roomNumber.trim()
-                  );
-                  return (
-                    <div
-                      key={booking.id}
-                      className="flex flex-wrap items-start justify-between gap-4 rounded-xl border bg-background p-4"
-                    >
-                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                        <div>
-                          <p className="text-xs font-medium uppercase text-muted-foreground">{t("admin.roomLabel")}</p>
-                          <p className="font-medium">{booking.room} · #{booking.roomNumber}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium uppercase text-muted-foreground">{t("admin.checkInCheckOut")}</p>
-                          <p className="text-sm">{booking.checkIn} → {booking.checkOut}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium uppercase text-muted-foreground">{t("admin.nightsGuests")}</p>
-                          <p className="text-sm">{booking.nights} · {booking.guests}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium uppercase text-muted-foreground">{t("admin.amountPayment")}</p>
-                          <p className="text-sm">{booking.amount.toLocaleString()} <CurrencySymbol /> · {t(paymentKeyMap[booking.paymentStatus as PaymentStatus])}</p>
-                        </div>
-                      </div>
-                      {roomRecord && (
-                        <div className="flex items-center gap-2 rounded-lg border border-dashed p-2">
-                          <BedDouble className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">
-                            {roomRecord.type}, {roomRecord.price} <CurrencySymbol /> · {t("admin.capacity")} {roomRecord.capacity} {t("admin.capacityGuests")}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
+            {bookingsByGuest.length === 0 ? (
+              <p className="rounded-lg border border-dashed bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
+                {t("admin.noBookingsForGuest")}
+              </p>
+            ) : (
+              <div className="overflow-x-auto rounded-lg border">
+                <Table className="table-fixed w-full">
+                  <colgroup>
+                    <col className="w-[28%]" />
+                    <col className="w-[22%]" />
+                    <col className="w-[15%]" />
+                    <col className="w-[35%]" />
+                  </colgroup>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-start">{t("admin.roomLabel")}</TableHead>
+                      <TableHead className="text-start whitespace-nowrap">{t("admin.checkInCheckOut")}</TableHead>
+                      <TableHead className="text-start whitespace-nowrap">{t("admin.nightsGuests")}</TableHead>
+                      <TableHead className="text-start whitespace-nowrap">{t("admin.amountPayment")}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {bookingsByGuest.map((booking) => {
+                      const roomRecord = data.rooms.find(
+                        (r) => r.number.trim() === booking.roomNumber.trim()
+                      );
+                      return (
+                        <TableRow key={booking.id}>
+                          <TableCell className="align-top text-start">
+                            <div className="min-w-0">
+                              <p className="font-medium">{booking.room} · #{booking.roomNumber}</p>
+                              {roomRecord && (
+                                <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <BedDouble className="h-3.5 w-3.5 shrink-0" />
+                                  {roomRecord.type}, {roomRecord.price} <CurrencySymbol /> · {t("admin.capacity")} {roomRecord.capacity} {t("admin.capacityGuests")}
+                                </p>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap text-start text-sm">
+                            {booking.checkIn} → {booking.checkOut}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap text-start text-sm">
+                            {booking.nights} · {booking.guests}
+                          </TableCell>
+                          <TableCell className="text-start text-sm">
+                            <span className="font-medium">{booking.amount.toLocaleString()}</span> <CurrencySymbol /> · {t(paymentKeyMap[booking.paymentStatus as PaymentStatus])}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -502,6 +530,9 @@ export default function BookingsPageContent() {
                 <TableHead className="w-[18%] text-start">{t("admin.roomLabel")}</TableHead>
                 <TableHead className="w-[18%] text-start">{t("admin.dates")}</TableHead>
                 <TableHead className="w-[10%] text-center whitespace-normal">
+                  {t("admin.status")}
+                </TableHead>
+                <TableHead className="w-[10%] text-center whitespace-normal">
                   {t("admin.payment")}
                 </TableHead>
                 <TableHead className="w-[10%] text-end">{t("admin.amount")}</TableHead>
@@ -510,7 +541,7 @@ export default function BookingsPageContent() {
             <TableBody>
               {filteredBookings.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-48">
+                  <TableCell colSpan={7} className="h-48">
                     <div className="flex flex-col items-center justify-center py-8 text-center">
                       <Inbox className="h-12 w-12 text-muted-foreground/50" />
                       <p className="mt-2 text-sm font-medium text-foreground">{t("admin.noBookingsYet")}</p>
@@ -539,6 +570,23 @@ export default function BookingsPageContent() {
                           <span>{booking.checkIn}</span>
                           <span className="text-muted-foreground">{booking.checkOut}</span>
                         </div>
+                      </TableCell>
+                      <TableCell className="w-[10%] text-center whitespace-normal text-xs sm:text-sm">
+                        <Select
+                          value={booking.status}
+                          onValueChange={(v) => updateBooking(booking.id, { status: v as BookingStatus })}
+                        >
+                          <SelectTrigger className="h-8 w-full justify-center text-xs sm:text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">{t("admin.statusPending")}</SelectItem>
+                            <SelectItem value="confirmed">{t("admin.statusConfirmed")}</SelectItem>
+                            <SelectItem value="checked-in">{t("admin.statusCheckedIn")}</SelectItem>
+                            <SelectItem value="checked-out">{t("admin.statusCheckedOut")}</SelectItem>
+                            <SelectItem value="cancelled">{t("admin.statusCancelled")}</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell className="w-[10%] text-center whitespace-normal text-xs sm:text-sm">
                         <Select

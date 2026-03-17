@@ -218,6 +218,15 @@ const translations: Translations = {
   "admin.addGuest": { ar: "إضافة ضيف", en: "Add Guest" },
   "admin.seoSettings": { ar: "إعدادات SEO", en: "SEO Settings" },
   "admin.updatePricing": { ar: "تحديث الأسعار", en: "Update Pricing" },
+  "admin.originalPriceLabel": { ar: "السعر قبل الخصم (اختياري)", en: "Original price (optional)" },
+  "admin.sizeLabel": { ar: "مساحة الغرفة (م²)", en: "Room size (m²)" },
+  "admin.seoTitleLabel": { ar: "عنوان SEO للغرفة", en: "Room SEO title" },
+  "admin.seoDescriptionLabel": { ar: "وصف SEO للغرفة", en: "Room SEO description" },
+  "admin.seoTitlePlaceholder": { ar: "مثال: جناح رئاسي فاخر بالقرب من الحرم", en: "e.g. Luxury Presidential Suite near the Haram" },
+  "admin.seoDescriptionPlaceholder": {
+    ar: "اكتب وصفاً موجزاً للغرفة يظهر في نتائج البحث.",
+    en: "Write a short description of this room that will appear in search results."
+  },
 
   // Bookings page
   "admin.bookingsTitle": { ar: "الحجوزات", en: "Bookings" },
@@ -347,6 +356,8 @@ const translations: Translations = {
   "admin.loggingIn": { ar: "جاري تسجيل الدخول...", en: "Logging in..." },
   "admin.loginButton": { ar: "تسجيل الدخول", en: "Login" },
   "admin.credentialsHint": { ar: "اسم المستخدم: admin — كلمة المرور: admin", en: "Username: admin — Password: admin" },
+  "admin.useDesktopOnly": { ar: "افتح لوحة التحكم على جهاز كمبيوتر", en: "Open the dashboard on a computer" },
+  "admin.useDesktopOnlyHint": { ar: "لوحة الإدارة متاحة على الشاشات الأكبر فقط.", en: "The admin dashboard is only available on larger screens." },
 };
 
 interface I18nContextType {

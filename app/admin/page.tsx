@@ -12,7 +12,6 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAdminData } from "@/components/admin-data-provider";
-import { isRoomBooked } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
 import { CurrencySymbol } from "@/components/currency-symbol";
 
@@ -34,19 +33,20 @@ export default function AdminDashboard() {
     .filter(
       (b) =>
         b.paymentStatus === "paid" &&
+        b.status !== "cancelled" &&
         (() => {
           const [y, m] = b.createdAt.split("-").map(Number);
           return (y * 100 + (m - 1)) === thisMonth;
         })()
     )
     .reduce((sum, b) => sum + b.amount, 0);
-  const occupiedRooms = data.rooms.filter(
-    (r) => r.status === "occupied" || isRoomBooked(data, r)
-  ).length;
-  const occupancyTotal = 30; // fixed total for occupancy percentage
+  const occupiedRooms = data.rooms.filter((r) => r.status === "occupied").length;
+  const occupancyTotal = Math.max(1, data.rooms.length);
   const occupancyRate =
     `${Math.round((occupiedRooms / occupancyTotal) * 100)}%`;
-  const totalGuests = data.guests.length;
+  const totalGuests = data.bookings
+    .filter((b) => b.status !== "cancelled")
+    .reduce((sum, b) => sum + (Number.isFinite(b.guests) ? b.guests : 0), 0);
 
   const stats = [
     { title: t(statKeys[0].key), value: String(totalBookings), icon: statKeys[0].icon },
@@ -159,7 +159,7 @@ export default function AdminDashboard() {
             ) : (
               <div className="space-y-4">
                 {roomStatus.map((r) => {
-                  const displayStatus = isRoomBooked(data, r) ? "occupied" : r.status;
+                  const displayStatus = r.status;
                   const statusLabel =
                     displayStatus === "occupied"
                       ? t("admin.booked")

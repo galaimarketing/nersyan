@@ -31,7 +31,7 @@ export function LocationSection() {
   }, []);
 
   return (
-    <section id="location" className="bg-secondary/30 py-20" dir={dir}>
+    <section id="location" className="bg-background py-20" dir={dir}>
       <div className="mx-auto max-w-7xl px-6 lg:px-12">
         {/* Section Header */}
         <div className="mb-12 text-center">
@@ -123,14 +123,23 @@ export function LocationSection() {
             </div>
 
             {/* CTA */}
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <Button size="lg" className="h-12 w-full max-w-[220px] sm:w-auto sm:min-w-0" asChild>
+            <div className="mt-4 flex flex-row flex-wrap gap-3">
+              <Button
+                size="lg"
+                className="h-12 w-full max-w-[220px] bg-[var(--ring)] text-primary-foreground shadow-md hover:bg-[var(--ring)]/90 hover:shadow-lg transition-all sm:w-auto sm:min-w-0"
+                asChild
+              >
                 <Link href="/rooms">
                   <CalendarCheck className="me-2 h-5 w-5" />
                   {t("booking.bookNow")}
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="h-12 w-full max-w-[220px] sm:w-auto sm:min-w-0" asChild>
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-12 w-full max-w-[220px] border-[var(--ring)] text-[var(--ring)] hover:bg-[var(--ring)]/5 sm:w-auto sm:min-w-0"
+                asChild
+              >
                 <a
                   href="https://www.google.com/maps/place/Nersyan+Taiba+Hotel+Apartments/@24.4759922,39.585859,17z"
                   target="_blank"

@@ -34,9 +34,9 @@ export function Footer() {
   const mainLinks = [
     { href: "/", label: language === "ar" ? "الرئيسية" : "Home" },
     { href: "/rooms", label: language === "ar" ? "الغرف" : "Rooms" },
-    { href: "#amenities", label: language === "ar" ? "المرافق" : "Amenities" },
-    { href: "#location", label: language === "ar" ? "الموقع" : "Location" },
-    { href: "#contact", label: language === "ar" ? "تواصل معنا" : "Contact" },
+    { href: "/#amenities", label: language === "ar" ? "المرافق" : "Amenities" },
+    { href: "/#location", label: language === "ar" ? "الموقع" : "Location" },
+    { href: "/#contact", label: language === "ar" ? "تواصل معنا" : "Contact" },
   ];
 
   const legalLinks = [
@@ -49,18 +49,16 @@ export function Footer() {
     <div dir={dir}>
       <UIFooter
         logo={
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary p-1.5">
-            <svg
-              viewBox="0 0 1080 1080"
-              className="h-full w-full text-primary-foreground"
-              fill="currentColor"
-              aria-hidden
-            >
-              <rect x="113.3" y="111.5" width="175.3" height="164.8" />
-              <path d="M288.6,694.1v-390.5H113.3l2.4,478.4c0,95.7,78.5,173.2,175.3,173.2h0v-.3h273.8s1,0,1,0h174.3V384.1c0-45-37-81.6-82.5-81.6h-92.8v521.3h-171.3s-104.9,11-104.9-129.8Z" />
-              <path d="M790.6,111.6h0c0,0-1.4,0-1.4,0,0,0-.1,0-.2,0h0s-278.4,0-278.4,0h0s-12,0-12,0h-163.4v578.5c0,45,37,90,82.5,90h92.8V242.6h170.3s100.3,6.7,110.5,109.1v616.8h175.3l-2.4-683.7c0-95.1-77.6-172.3-173.7-173.1Z" />
-            </svg>
-          </div>
+          <svg
+            viewBox="0 0 1080 1080"
+            className="h-9 w-9 text-[#644a40]"
+            fill="currentColor"
+            aria-hidden
+          >
+            <rect x="113.3" y="111.5" width="175.3" height="164.8" />
+            <path d="M288.6,694.1v-390.5H113.3l2.4,478.4c0,95.7,78.5,173.2,175.3,173.2h0v-.3h273.8s1,0,1,0h174.3V384.1c0-45-37-81.6-82.5-81.6h-92.8v521.3h-171.3s-104.9,11-104.9-129.8Z" />
+            <path d="M790.6,111.6h0c0,0-1.4,0-1.4,0,0,0-.1,0-.2,0h0s-278.4,0-278.4,0h0s-12,0-12,0h-163.4v578.5c0,45,37,90,82.5,90h92.8V242.6h170.3s100.3,6.7,110.5,109.1v616.8h175.3l-2.4-683.7c0-95.1-77.6-172.3-173.7-173.1Z" />
+          </svg>
         }
         brandName={brandName}
         socialLinks={[

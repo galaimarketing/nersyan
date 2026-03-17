@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getAdminData } from "@/lib/db";
-import { isRoomBooked } from "@/lib/admin-store";
 import type { AdminData, AdminRoom } from "@/lib/admin-store";
 import type { Room } from "@/lib/rooms-data";
 
@@ -14,8 +13,7 @@ function mapAdminRoomToRoom(ar: AdminRoom, data: AdminData): Room {
   const descAr = `غرفة مريحة من نوع ${ar.type} مع وسائل الراحة الأساسية.`;
   const images = (ar.images && ar.images.length > 0 ? ar.images : ar.image ? [ar.image] : []).filter(Boolean);
   const image = images[0] ?? PLACEHOLDER_IMAGE;
-  const booked = isRoomBooked(data, ar);
-  const available = ar.status === "available" && !booked;
+  const available = ar.status === "available";
   return {
     id: ar.id,
     nameAr: ar.type,
@@ -23,10 +21,11 @@ function mapAdminRoomToRoom(ar: AdminRoom, data: AdminData): Room {
     descriptionAr: descAr,
     descriptionEn: descEn,
     price: ar.price,
+    originalPrice: ar.originalPrice && ar.originalPrice > ar.price ? ar.originalPrice : undefined,
     image,
     images: images.length > 0 ? images : [image],
     capacity: ar.capacity,
-    size: 0,
+    size: ar.size ?? 0,
     amenities: ["wifi", "ac", "parking"],
     available,
     roomsLeft: available ? 1 : 0,

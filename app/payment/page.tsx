@@ -44,12 +44,12 @@ function PaymentContent() {
     }
   }, []);
 
-  const handlePay = (method: "card" | "apple" | "on-arrival") => {
+  const handlePay = async (method: "card" | "apple" | "on-arrival") => {
     if (typeof window !== "undefined") {
       if (rawPayload) {
         try {
           const payload = JSON.parse(rawPayload);
-          addCustomerBookingToStore(payload);
+          await addCustomerBookingToStore(payload);
         } catch {
           // ignore
         }

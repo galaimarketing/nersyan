@@ -7,15 +7,44 @@ import { CurrencySymbol } from "@/components/currency-symbol";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { loadAdminData, type AdminBooking } from "@/lib/admin-store";
+import type { AdminBooking } from "@/lib/admin-store";
 
 function MyBookingsContent() {
   const { t, language, dir } = useI18n();
   const [bookings, setBookings] = useState<AdminBooking[] | null>(null);
+  const [guestName, setGuestName] = useState<string | null>(null);
 
   useEffect(() => {
-    const data = loadAdminData();
-    setBookings(data.bookings ?? []);
+    async function load() {
+      try {
+        const res = await fetch("/api/admin/data", { cache: "no-store" });
+        if (!res.ok) {
+          setBookings([]);
+          return;
+        }
+        const data = (await res.json()) as { bookings?: AdminBooking[]; guests?: { id: string; name: string }[] };
+
+        // Simple "current guest" resolution from localStorage (booking id) if available
+        let filtered = data.bookings ?? [];
+        if (typeof window !== "undefined") {
+          const lastBookingId = window.localStorage.getItem("nersian-last-booking-id");
+          if (lastBookingId) {
+            const match = filtered.find((b) => b.id === lastBookingId);
+            if (match) {
+              filtered = filtered.filter((b) => b.guestId === match.guestId);
+              const guest = (data.guests ?? []).find((g) => g.id === match.guestId);
+              if (guest?.name) setGuestName(guest.name);
+            }
+          }
+        }
+
+        setBookings(filtered);
+      } catch {
+        setBookings([]);
+      }
+    }
+
+    load();
   }, []);
 
   const hasBookings = bookings != null && bookings.length > 0;
@@ -25,9 +54,14 @@ function MyBookingsContent() {
       <Header />
       <main className="pb-20 pt-32">
         <div className="mx-auto max-w-3xl px-6 lg:px-12">
-          <h1 className="mb-2 text-3xl font-bold text-foreground md:text-4xl">
+          <h1 className="mb-1 text-3xl font-bold text-foreground md:text-4xl">
             {t("myBookings.title")}
           </h1>
+          {guestName && (
+            <p className="mb-1 text-lg font-semibold text-[var(--ring)]">
+              {language === "ar" ? `مرحباً ${guestName}` : `Welcome, ${guestName}`}
+            </p>
+          )}
           <p className="mb-8 text-sm text-muted-foreground">
             {t("myBookings.subtitle")}
           </p>

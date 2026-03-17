@@ -31,10 +31,17 @@ export interface AdminRoom {
   number: string;
   type: string;
   price: number;
+  /** Optional original price before discount; if present and > price, treated as discounted. */
+  originalPrice?: number;
   capacity: number;
+  /** Room size in square meters. */
+  size?: number;
   status: "available" | "occupied" | "maintenance";
   image: string;
   images?: string[];
+  /** Optional SEO title and description for room detail page. */
+  seoTitle?: string;
+  seoDescription?: string;
 }
 
 export interface BlogPost {
@@ -187,8 +194,16 @@ export interface PendingBookingPayload {
 }
 
 /** Persist a customer booking into admin data (guest + booking). Call after payment/confirm. */
-export function addCustomerBookingToStore(payload: PendingBookingPayload): void {
-  const data = loadAdminData();
+export async function addCustomerBookingToStore(payload: PendingBookingPayload): Promise<void> {
+  if (typeof fetch === "undefined") return;
+  let data: AdminData | null = null;
+  try {
+    const res = await fetch("/api/admin/data", { cache: "no-store" });
+    data = res.ok ? ((await res.json()) as AdminData) : null;
+  } catch {
+    data = null;
+  }
+  if (!data) return;
   const room = data.rooms.find((r) => r.id === payload.roomId);
   if (!room) return;
 
@@ -240,13 +255,17 @@ export function addCustomerBookingToStore(payload: PendingBookingPayload): void 
     guests: [...data.guests, guest],
     bookings: [...data.bookings, booking],
     notifications: [notification, ...(data.notifications ?? [])],
+    rooms: data.rooms.map((r) =>
+      r.id === payload.roomId ? { ...r, status: "occupied" as const } : r
+    ),
   };
-  saveAdminData(nextData);
-  if (typeof fetch !== "undefined") {
-    fetch("/api/admin/data", {
+  try {
+    await fetch("/api/admin/data", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(nextData),
-    }).catch(() => {});
+    });
+  } catch {
+    // ignore
   }
 }

@@ -38,7 +38,7 @@ export function ContactForm() {
   };
 
   return (
-    <section id="contact" className="bg-secondary/30 py-20" dir={dir}>
+    <section id="contact" className="bg-background py-20" dir={dir}>
       <div className="mx-auto max-w-7xl px-6 lg:px-12">
         <div className="grid gap-12 lg:grid-cols-2">
           {/* Left side - Info */}
