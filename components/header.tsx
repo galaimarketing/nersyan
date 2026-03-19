@@ -143,7 +143,13 @@ export function Header() {
                 </ul>
               </div>
               <div className="flex w-full flex-col items-center gap-3 sm:flex-row md:w-fit">
-                <LanguageToggle />
+                <LanguageToggle
+                  className={
+                    showSolidNav
+                      ? undefined
+                      : "border-white/50 bg-white/15 text-white hover:bg-white/25 hover:text-white"
+                  }
+                />
                 <HeaderUserMenu showSolidNav={showSolidNav} />
               </div>
             </div>

@@ -39,6 +39,14 @@ interface BookingDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+function toLocalDateKey(d: Date | undefined): string | undefined {
+  if (!d || Number.isNaN(d.getTime())) return undefined;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export function BookingDialog({ room, open, onOpenChange }: BookingDialogProps) {
   const { t, language, dir } = useI18n();
   const router = useRouter();
@@ -73,7 +81,11 @@ export function BookingDialog({ room, open, onOpenChange }: BookingDialogProps) 
       const payload = {
         roomId: room.id,
         roomName,
-        dateRange,
+        // Persist date-only strings to avoid UTC ISO timezone shifts (e.g. KSA date moving to previous day).
+        dateRange: {
+          from: toLocalDateKey(dateRange?.from),
+          to: toLocalDateKey(dateRange?.to ?? dateRange?.from),
+        },
         guests,
         guestName,
         guestPhone,

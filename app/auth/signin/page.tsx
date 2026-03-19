@@ -12,8 +12,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { I18nProvider, useI18n, LanguageToggle } from "@/lib/i18n";
 import { dispatchNersianAuthChanged } from "@/lib/use-app-user";
-import { startSupabaseOAuthRedirect } from "@/lib/supabase-oauth-client";
-import { hasSupabaseAuth } from "@/lib/supabase-browser";
 
 function SignInForm() {
   const { t, language, dir } = useI18n();
@@ -23,11 +21,8 @@ function SignInForm() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [oauthBusy, setOauthBusy] = useState<null | "google" | "apple">(null);
   const router = useRouter();
   const searchParams = useSearchParams();
-  /** Inlined at build time — if missing on Vercel, hide OAuth so guests don’t see config errors */
-  const oauthAvailable = hasSupabaseAuth();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,111 +170,6 @@ function SignInForm() {
                     : t("auth.signIn")}
                 </Button>
               </form>
-
-              {oauthAvailable ? (
-                <>
-                  {/* Divider */}
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-background px-2 text-muted-foreground">
-                        {language === "ar" ? "أو" : "or"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Social login — only if NEXT_PUBLIC_* were present at build time */}
-                  <div className="flex flex-col gap-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="flex h-12 w-full items-center justify-center gap-3 rounded-lg"
-                      disabled={!!oauthBusy}
-                      onClick={async () => {
-                        setError(null);
-                        const next = searchParams.get("next") || "/";
-                        setOauthBusy("google");
-                        const result = await startSupabaseOAuthRedirect("google", next);
-                        if (!result.ok) {
-                          setOauthBusy(null);
-                          if (result.reason === "not_configured") {
-                            setError(
-                              t(
-                                process.env.NODE_ENV === "development"
-                                  ? "auth.oauthNotConfiguredDev"
-                                  : "auth.oauthNotConfiguredProd"
-                              )
-                            );
-                          } else {
-                            setError(
-                              `${t("auth.oauthCouldNotStart")}${result.detail ? `: ${result.detail}` : ""}`
-                            );
-                          }
-                        }
-                      }}
-                    >
-                      <Image
-                        src="https://www.svgrepo.com/show/355037/google.svg"
-                        alt="Google"
-                        width={20}
-                        height={20}
-                      />
-                      {oauthBusy === "google"
-                        ? language === "ar"
-                          ? "جاري التوجيه…"
-                          : "Redirecting…"
-                        : t("auth.continueGoogle")}
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="flex h-12 w-full items-center justify-center gap-3 rounded-lg"
-                      disabled={!!oauthBusy}
-                      onClick={async () => {
-                        setError(null);
-                        const next = searchParams.get("next") || "/";
-                        setOauthBusy("apple");
-                        const result = await startSupabaseOAuthRedirect("apple", next);
-                        if (!result.ok) {
-                          setOauthBusy(null);
-                          if (result.reason === "not_configured") {
-                            setError(
-                              t(
-                                process.env.NODE_ENV === "development"
-                                  ? "auth.oauthNotConfiguredDev"
-                                  : "auth.oauthNotConfiguredProd"
-                              )
-                            );
-                          } else {
-                            setError(
-                              `${t("auth.oauthCouldNotStart")}${result.detail ? `: ${result.detail}` : ""}`
-                            );
-                          }
-                        }
-                      }}
-                    >
-                      <Image
-                        src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg"
-                        alt="Apple"
-                        width={20}
-                        height={20}
-                        className="dark:invert"
-                        unoptimized
-                      />
-                      {oauthBusy === "apple"
-                        ? language === "ar"
-                          ? "جاري التوجيه…"
-                          : "Redirecting…"
-                        : t("auth.continueApple")}
-                    </Button>
-                  </div>
-                </>
-              ) : process.env.NODE_ENV === "development" ? (
-                <p className="text-center text-xs text-muted-foreground">{t("auth.oauthDevHint")}</p>
-              ) : null}
 
               {/* Signup */}
               <p className="text-center text-sm text-muted-foreground">

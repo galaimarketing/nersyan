@@ -536,18 +536,18 @@ export default function BookingsPageContent() {
           <Table className="table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[10%] text-start">{t("admin.bookingId")}</TableHead>
-                <TableHead className="w-[18%] text-start">{t("admin.guest")}</TableHead>
-                <TableHead className="w-[18%] text-start">{t("admin.roomLabel")}</TableHead>
-                <TableHead className="w-[18%] text-start">{t("admin.dates")}</TableHead>
+                <TableHead className="w-[14%] text-start">{t("admin.bookingId")}</TableHead>
+                <TableHead className="w-[16%] text-start">{t("admin.guest")}</TableHead>
+                <TableHead className="w-[16%] text-start">{t("admin.roomLabel")}</TableHead>
+                <TableHead className="w-[16%] text-start">{t("admin.dates")}</TableHead>
                 <TableHead className="w-[10%] text-center whitespace-normal">
                   {t("admin.status")}
                 </TableHead>
                 <TableHead className="w-[10%] text-center whitespace-normal">
                   {t("admin.payment")}
                 </TableHead>
-                <TableHead className="w-[10%] text-end">{t("admin.amount")}</TableHead>
-                <TableHead className="w-[8%] text-center">{t("admin.actions")}</TableHead>
+                <TableHead className="w-[8%] text-end">{t("admin.amount")}</TableHead>
+                <TableHead className="w-[10%] text-center">{t("admin.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -564,20 +564,24 @@ export default function BookingsPageContent() {
               ) : (
                 filteredBookings.map((booking, bi) => (
                     <TableRow key={`${booking.id}-${booking.guestId}-${booking.checkIn}-${booking.createdAt}-${bi}`}>
-                      <TableCell className="w-[10%] text-start font-medium">{booking.id}</TableCell>
-                      <TableCell className="w-[18%] text-start">
+                      <TableCell className="w-[14%] text-start font-medium">
+                        <span className="block max-w-[10rem] truncate" title={booking.id}>
+                          {booking.id}
+                        </span>
+                      </TableCell>
+                      <TableCell className="w-[16%] text-start">
                         <div>
                           <p className="font-medium">{booking.guestName}</p>
                           <p className="text-xs text-muted-foreground truncate">{booking.email}</p>
                         </div>
                       </TableCell>
-                      <TableCell className="w-[18%] text-start">
+                      <TableCell className="w-[16%] text-start">
                         <div>
                           <p className="font-medium">{booking.room}</p>
                           <p className="text-xs text-muted-foreground">{t("admin.roomLabel")} {booking.roomNumber}</p>
                         </div>
                       </TableCell>
-                      <TableCell className="w-[18%] text-start text-sm">
+                      <TableCell className="w-[16%] text-start text-sm">
                         <div className="flex flex-col gap-0.5">
                           <span>{booking.checkIn}</span>
                           <span className="text-muted-foreground">{booking.checkOut}</span>
@@ -620,7 +624,7 @@ export default function BookingsPageContent() {
                       <TableCell className="w-[10%] text-end font-semibold">
                         {booking.amount.toLocaleString()} <CurrencySymbol />
                       </TableCell>
-                      <TableCell className="w-[8%] text-center">
+                      <TableCell className="w-[10%] text-center">
                         <Button
                           type="button"
                           variant="ghost"

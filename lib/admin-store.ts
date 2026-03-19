@@ -526,6 +526,42 @@ export interface PendingBookingPayload {
 }
 
 /**
+ * Date selected in UI should be interpreted in hotel timezone.
+ * Accepts:
+ * - YYYY-MM-DD (kept as-is)
+ * - ISO with time (converted to hotel date, avoids UTC off-by-one)
+ * - other parseable values (fallback via bookingDateKey)
+ */
+function pendingDateToHotelDateKey(v: string | undefined): string | null {
+  if (!v) return null;
+  const s = String(v).trim();
+  if (!s) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // If an ISO timestamp is passed (legacy payload), convert to hotel local calendar date.
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) {
+    try {
+      const d = new Date(s);
+      if (!Number.isNaN(d.getTime())) {
+        const fmt = new Intl.DateTimeFormat("en-US", {
+          timeZone: HOTEL_TIMEZONE,
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        });
+        const parts = fmt.formatToParts(d);
+        const y = parts.find((p) => p.type === "year")?.value;
+        const m = parts.find((p) => p.type === "month")?.value;
+        const day = parts.find((p) => p.type === "day")?.value;
+        if (y && m && day) return `${y}-${m.padStart(2, "0")}-${day.padStart(2, "0")}`;
+      }
+    } catch {
+      // fall through
+    }
+  }
+  return bookingDateKey(s);
+}
+
+/**
  * Pure merge: append guest + booking and mark room occupied. Use from browser (after fetch) or server (getAdminData).
  */
 export function mergeCustomerBookingIntoAdminData(
@@ -537,9 +573,15 @@ export function mergeCustomerBookingIntoAdminData(
 
   const from = payload.dateRange?.from;
   const to = payload.dateRange?.to;
-  const checkIn = typeof from === "string" ? from.slice(0, 10) : new Date().toISOString().slice(0, 10);
-  const checkOut = typeof to === "string" ? to.slice(0, 10) : checkIn;
-  const nights = from && to ? Math.max(1, Math.ceil((new Date(to).getTime() - new Date(from).getTime()) / 86400000)) : 1;
+  const checkIn = pendingDateToHotelDateKey(from) ?? hotelCalendarTodayKey();
+  const checkOut = pendingDateToHotelDateKey(to) ?? checkIn;
+  const nights =
+    checkIn && checkOut
+      ? Math.max(
+          1,
+          Math.ceil((new Date(`${checkOut}T00:00:00`).getTime() - new Date(`${checkIn}T00:00:00`).getTime()) / 86400000)
+        )
+      : 1;
 
   const guestId = generateId().slice(0, 8);
   const guest: AdminGuest = {

@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 type Language = "ar" | "en";
 
@@ -434,13 +435,17 @@ export function useI18n() {
   return context;
 }
 
-export function LanguageToggle() {
+export function LanguageToggle({ className }: { className?: string }) {
   const { language, setLanguage } = useI18n();
 
   return (
     <button
+      type="button"
       onClick={() => setLanguage(language === "ar" ? "en" : "ar")}
-      className="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent"
+      className={cn(
+        "flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent",
+        className
+      )}
     >
       {language === "ar" ? "English" : "العربية"}
     </button>
