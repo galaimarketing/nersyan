@@ -138,8 +138,8 @@ function PaymentContent() {
             </h1>
             <p className="text-sm text-muted-foreground">
               {language === "ar"
-                ? "ادفع عبر صفحة Moyasar الآمنة، أو اختر الدفع عند الوصول."
-                : "Pay on Moyasar’s secure page, or choose pay on arrival."}
+                ? "الدفع عبر فاتورة Moyasar (صفحة دفع رسمية). أو اختر الدفع عند الوصول."
+                : "Pay using a Moyasar invoice (official checkout page), or pay on arrival."}
             </p>
           </div>
 
@@ -211,8 +211,8 @@ function PaymentContent() {
 
           <p className="text-center text-xs text-muted-foreground">
             {language === "ar"
-              ? "سيتم فتح صفحة دفع Moyasar في نفس النافذة."
-              : "You’ll be taken to Moyasar’s checkout in this window."}
+              ? "سيتم فتح صفحة دفع Moyasar في نفس النافذة. إذا رأيت أزرار فيزا وApple منفصلة أو رسالة «تجريبي» فالموقع لم يُحدَّث — أعد النشر من Vercel وامسح ذاكرة التخزين المؤقت."
+              : "Moyasar opens in this window. If you still see separate Visa/Apple buttons or a “demo” message, the live site is an old deploy — redeploy on Vercel and hard-refresh (or clear cache)."}
           </p>
 
           <div className="text-center">
