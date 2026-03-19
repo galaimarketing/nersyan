@@ -180,6 +180,20 @@ export function isRoomBooked(data: AdminData, room: AdminRoom): boolean {
   );
 }
 
+/**
+ * Storefront availability — must match admin "effective" status:
+ * - maintenance → not bookable
+ * - manually available → bookable (even if legacy bookings exist)
+ * - occupied → bookable only when there is NO active booking (checkOut >= today);
+ *   stale "occupied" after checkout shows as available so it matches admin + landing.
+ */
+export function isRoomAvailableForPublic(data: AdminData, room: AdminRoom): boolean {
+  if (room.status === "maintenance") return false;
+  if (room.status === "available") return true;
+  if (room.status === "occupied") return !isRoomBooked(data, room);
+  return false;
+}
+
 /** Payload stored in nersian-pending-booking when customer goes to payment. */
 export interface PendingBookingPayload {
   roomId: string;

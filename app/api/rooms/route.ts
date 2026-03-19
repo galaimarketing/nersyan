@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdminData } from "@/lib/db";
-import type { AdminData, AdminRoom } from "@/lib/admin-store";
+import { isRoomAvailableForPublic, type AdminData, type AdminRoom } from "@/lib/admin-store";
 import type { Room } from "@/lib/rooms-data";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ function mapAdminRoomToRoom(ar: AdminRoom, data: AdminData): Room {
   const descAr = `غرفة مريحة من نوع ${ar.type} مع وسائل الراحة الأساسية.`;
   const images = (ar.images && ar.images.length > 0 ? ar.images : ar.image ? [ar.image] : []).filter(Boolean);
   const image = images[0] ?? PLACEHOLDER_IMAGE;
-  const available = ar.status === "available";
+  const available = isRoomAvailableForPublic(data, ar);
   return {
     id: ar.id,
     nameAr: ar.type,
