@@ -6,6 +6,13 @@ import { useRouter } from "next/navigation";
 import { CreditCard, Apple, MapPin, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { I18nProvider, useI18n } from "@/lib/i18n";
@@ -62,6 +69,18 @@ function PaymentContent() {
       // ignore parse errors
     }
   }, []);
+
+  const openCardDialog = (mode: "card" | "apple") => {
+    setMoyasarError(null);
+    if (!MOYASAR_PUBLISHABLE_KEY) {
+      setMoyasarError(
+        language === "ar"
+          ? "مفتاح Moyasar غير مضبوط. أضف NEXT_PUBLIC_MOYASAR_PUBLISHABLE_KEY في إعدادات الاستضافة ثم أعد النشر."
+          : "Moyasar publishable key is missing. Add NEXT_PUBLIC_MOYASAR_PUBLISHABLE_KEY to your host env and redeploy."
+      );
+    }
+    setCardFormOpen(mode);
+  };
 
   const handleOnArrival = async () => {
     if (typeof window !== "undefined") {
@@ -231,10 +250,7 @@ function PaymentContent() {
               variant="outline"
               size="lg"
               className="flex w-full items-center justify-center gap-3"
-              onClick={() => {
-                setCardFormOpen("card");
-                setMoyasarError(null);
-              }}
+              onClick={() => openCardDialog("card")}
               disabled={!booking}
             >
               <CreditCard className="h-5 w-5" />
@@ -244,10 +260,7 @@ function PaymentContent() {
               variant="outline"
               size="lg"
               className="flex w-full items-center justify-center gap-3"
-              onClick={() => {
-                setCardFormOpen("apple");
-                setMoyasarError(null);
-              }}
+              onClick={() => openCardDialog("apple")}
               disabled={!booking}
             >
               <Apple className="h-5 w-5" />
@@ -265,23 +278,34 @@ function PaymentContent() {
             </Button>
           </div>
 
-          {cardFormOpen && (
-            <div className="rounded-2xl border bg-card/70 p-4">
-              <div className="flex items-center justify-between gap-4">
-                <p className="text-sm font-semibold text-foreground">
-                  {language === "ar" ? "بيانات البطاقة" : "Card details"}
-                </p>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCardFormOpen(null)}
-                >
-                  {language === "ar" ? "إلغاء" : "Cancel"}
-                </Button>
-              </div>
+          <Dialog
+            open={cardFormOpen !== null}
+            onOpenChange={(open) => {
+              if (!open) {
+                setCardFormOpen(null);
+                setMoyasarError(null);
+              }
+            }}
+          >
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md" dir={dir}>
+              <DialogHeader>
+                <DialogTitle>
+                  {cardFormOpen === "apple"
+                    ? language === "ar"
+                      ? "الدفع عبر Apple Pay"
+                      : "Pay with Apple Pay"
+                    : language === "ar"
+                      ? "الدفع ببطاقة"
+                      : "Card payment"}
+                </DialogTitle>
+                <DialogDescription>
+                  {language === "ar"
+                    ? "أدخل بيانات البطاقة لإتمام الدفع عبر Moyasar."
+                    : "Enter your card details to pay securely with Moyasar."}
+                </DialogDescription>
+              </DialogHeader>
 
-              <form onSubmit={handleMoyasarCardSubmit} className="mt-4 grid gap-3">
+              <form onSubmit={handleMoyasarCardSubmit} className="grid gap-3">
                 <div className="grid gap-2">
                   <Label htmlFor="cardName">{language === "ar" ? "اسم حامل البطاقة" : "Card holder name"}</Label>
                   <Input id="cardName" value={cardName} onChange={(e) => setCardName(e.target.value)} autoComplete="cc-name" />
@@ -309,7 +333,7 @@ function PaymentContent() {
                   <p className="text-sm text-destructive">{moyasarError}</p>
                 )}
 
-                <Button type="submit" disabled={moyasarLoading} className="mt-1">
+                <Button type="submit" disabled={moyasarLoading || !MOYASAR_PUBLISHABLE_KEY} className="mt-1">
                   {moyasarLoading ? (language === "ar" ? "جاري الإعداد..." : "Processing...") : (language === "ar" ? "ادفع الآن" : "Pay now")}
                 </Button>
 
@@ -318,8 +342,8 @@ function PaymentContent() {
                   {language === "ar" ? "المعلومات تُرسل إلى Moyasar مباشرةً" : "Card data is sent directly to Moyasar"}
                 </div>
               </form>
-            </div>
-          )}
+            </DialogContent>
+          </Dialog>
 
           <p className="text-center text-xs text-muted-foreground">
             {language === "ar"
