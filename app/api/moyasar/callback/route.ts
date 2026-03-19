@@ -39,6 +39,13 @@ export async function GET(req: Request) {
     moyasarStatus === "succeeded" ||
     moyasarStatus === "paid_out";
 
+  const isFailure =
+    moyasarStatus === "failed" ||
+    moyasarStatus === "cancelled" ||
+    moyasarStatus === "refunded" ||
+    moyasarStatus === "expired" ||
+    moyasarStatus === "rejected";
+
   // 2) Update booking in DB
   const data = await getAdminData();
   if (!data) {
@@ -50,7 +57,13 @@ export async function GET(req: Request) {
     if (paid) {
       return { ...b, status: "confirmed", paymentStatus: "paid" };
     }
-    return { ...b, status: "cancelled", paymentStatus: "refunded" };
+    if (isFailure) {
+      return { ...b, status: "cancelled", paymentStatus: "refunded" };
+    }
+
+    // If Moyasar is still "pending"/"initiated"/etc, keep booking pending.
+    // This prevents prematurely marking bookings as cancelled before the payment settles.
+    return { ...b, status: "pending", paymentStatus: "pending" };
   });
 
   const updatedCount = (data.bookings ?? []).reduce((acc, b) => acc + (b.id === bookingId ? 1 : 0), 0);
