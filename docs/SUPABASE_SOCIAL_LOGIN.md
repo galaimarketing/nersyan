@@ -73,7 +73,7 @@ If any field is wrong or the Return URL in Apple doesn’t match **exactly**, Su
 
 ## 4. Env vars (this repo)
 
-In `.env.local`:
+**Local:** in `.env.local`:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
@@ -81,3 +81,5 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...   # anon public key, not service_role
 ```
 
 Restart `npm run dev` after changes.
+
+**Hosted (Vercel, etc.):** add the **same** two variables in the dashboard (**Settings → Environment Variables**). They must start with `NEXT_PUBLIC_` so the browser bundle includes them. **Redeploy** after saving — a new build is required. Without them, Google/Apple buttons will show a configuration message to visitors.

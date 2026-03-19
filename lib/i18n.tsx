@@ -94,9 +94,15 @@ const translations: Translations = {
   "auth.privacy": { ar: "سياسة الخصوصية", en: "Privacy Policy" },
   "auth.continueGoogle": { ar: "المتابعة مع Google", en: "Continue with Google" },
   "auth.continueApple": { ar: "المتابعة مع Apple", en: "Continue with Apple" },
-  "auth.oauthNotConfigured": {
-    ar: "تسجيل الدخول عبر Google أو Apple يحتاج إلى ضبط Supabase: أضف NEXT_PUBLIC_SUPABASE_URL و NEXT_PUBLIC_SUPABASE_ANON_KEY في .env.local، فعّل المزود في لوحة Supabase ← Authentication، وأضف رابط إعادة التوجيه مثل http://localhost:3000/auth/callback",
-    en: "Google/Apple sign-in requires Supabase: set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local, enable the provider under Supabase → Authentication, and add your redirect URL (e.g. http://localhost:3000/auth/callback).",
+  /** Shown on localhost when env vars are missing (developers). */
+  "auth.oauthNotConfiguredDev": {
+    ar: "تسجيل الدخول عبر Google أو Apple يحتاج Supabase محلياً: أضف NEXT_PUBLIC_SUPABASE_URL و NEXT_PUBLIC_SUPABASE_ANON_KEY في ملف .env.local، فعّل المزود في Supabase ← Authentication، وأضف http://localhost:3000/auth/callback ضمن Redirect URLs.",
+    en: "Google/Apple sign-in needs Supabase locally: add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local, enable the provider in Supabase → Authentication, and add http://localhost:3000/auth/callback under Redirect URLs.",
+  },
+  /** Shown on hosted/production when env vars are missing — do not mention .env.local. */
+  "auth.oauthNotConfiguredProd": {
+    ar: "تسجيل الدخول بـ Google أو Apple غير مفعّل على هذا الموقع حتى الآن. إذا كنت مالك المشروع: أضف NEXT_PUBLIC_SUPABASE_URL و NEXT_PUBLIC_SUPABASE_ANON_KEY في إعدادات البيئة لدى المستضيف (مثل Vercel → Environment Variables) ثم أعد نشر الموقع. في Supabase ← Authentication فعّل المزود وأضف رابط إعادة التوجيه لموقعك الحقيقي، مثل: https://اسم-نطاقك.com/auth/callback",
+    en: "Google and Apple sign-in isn’t enabled on this site yet. If you deploy it: add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your host’s environment variables (e.g. Vercel → Settings → Environment Variables), then redeploy. In Supabase → Authentication, enable the providers and add your live callback URL: https://your-domain.com/auth/callback",
   },
   "auth.oauthCouldNotStart": { ar: "تعذر بدء تسجيل الدخول", en: "Could not start sign-in" },
   

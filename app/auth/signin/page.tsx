@@ -200,7 +200,13 @@ function SignInForm() {
                     if (!result.ok) {
                       setOauthBusy(null);
                       if (result.reason === "not_configured") {
-                        setError(t("auth.oauthNotConfigured"));
+                        setError(
+                          t(
+                            process.env.NODE_ENV === "development"
+                              ? "auth.oauthNotConfiguredDev"
+                              : "auth.oauthNotConfiguredProd"
+                          )
+                        );
                       } else {
                         setError(
                           `${t("auth.oauthCouldNotStart")}${result.detail ? `: ${result.detail}` : ""}`
@@ -235,7 +241,13 @@ function SignInForm() {
                     if (!result.ok) {
                       setOauthBusy(null);
                       if (result.reason === "not_configured") {
-                        setError(t("auth.oauthNotConfigured"));
+                        setError(
+                          t(
+                            process.env.NODE_ENV === "development"
+                              ? "auth.oauthNotConfiguredDev"
+                              : "auth.oauthNotConfiguredProd"
+                          )
+                        );
                       } else {
                         setError(
                           `${t("auth.oauthCouldNotStart")}${result.detail ? `: ${result.detail}` : ""}`
