@@ -105,6 +105,11 @@ const translations: Translations = {
     en: "Google and Apple sign-in isn’t enabled on this site yet. If you deploy it: add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your host’s environment variables (e.g. Vercel → Settings → Environment Variables), then redeploy. In Supabase → Authentication, enable the providers and add your live callback URL: https://your-domain.com/auth/callback",
   },
   "auth.oauthCouldNotStart": { ar: "تعذر بدء تسجيل الدخول", en: "Could not start sign-in" },
+  /** Dev only: shown when OAuth buttons are hidden because env is missing */
+  "auth.oauthDevHint": {
+    ar: "لتفعيل Google وApple: أضف NEXT_PUBLIC_SUPABASE_URL و NEXT_PUBLIC_SUPABASE_ANON_KEY في .env.local ثم أعد تشغيل السيرفر.",
+    en: "To enable Google/Apple: add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local, then restart the dev server.",
+  },
   
   // Footer
   "footer.rights": { ar: "جميع الحقوق محفوظة", en: "All rights reserved" },
