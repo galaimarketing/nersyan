@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { addCustomerBookingToStore } from "@/lib/admin-store";
 
-type InitiateBody = {
-  token: string;
+type InvoiceBody = {
   payload: {
     roomId: string;
     roomName: string;
@@ -24,16 +23,22 @@ function getEnv(key: string): string | undefined {
   return v.trim().replace(/^["']|["']$/g, "").replace(/\r?\n/g, "");
 }
 
+/** SAR amounts in our app are in riyals (e.g. 150). Moyasar invoices use halalah: 1 SAR = 100. */
+function toAmountHalalah(sar: number): number {
+  const n = Number(sar);
+  if (!Number.isFinite(n) || n <= 0) return 100;
+  return Math.max(100, Math.round(n * 100));
+}
+
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  const body = (await req.json()) as InitiateBody;
-  const token = body?.token;
+  const body = (await req.json()) as InvoiceBody;
   const payload = body?.payload;
 
-  if (!token || !payload) {
-    return NextResponse.json({ ok: false, error: "Missing token or payload" }, { status: 400 });
+  if (!payload?.roomId) {
+    return NextResponse.json({ ok: false, error: "Missing booking payload" }, { status: 400 });
   }
 
   const secretKey = getEnv("MOYASAR_SECRET_KEY");
@@ -41,52 +46,45 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "Moyasar secret key missing" }, { status: 500 });
   }
 
-  // 1) Create pending booking
   const booking = await addCustomerBookingToStore({
     ...payload,
     status: "pending",
     paymentStatus: "pending",
   });
+
   if (!booking?.id) {
     return NextResponse.json({ ok: false, error: "Failed to create pending booking" }, { status: 400 });
   }
 
-  // 2) Create Moyasar payment using the card token
   const url = new URL(req.url);
   const origin = url.origin;
-  const callbackUrl = `${origin}/api/moyasar/callback?bookingId=${encodeURIComponent(booking.id)}`;
-
-  const amount = Math.max(1, Math.round(booking.amount ?? payload.total ?? 0));
+  const amountHalalah = toAmountHalalah(booking.amount ?? payload.total ?? 0);
 
   const auth = Buffer.from(`${secretKey}:`).toString("base64");
-  const moyasarRes = await fetch("https://api.moyasar.com/v1/payments", {
+  const moyasarRes = await fetch("https://api.moyasar.com/v1/invoices", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Basic ${auth}`,
     },
     body: JSON.stringify({
-      amount,
+      amount: amountHalalah,
       currency: "SAR",
-      description: `${booking.guestName} - ${booking.room} #${booking.roomNumber} (${booking.id})`,
-      callback_url: callbackUrl,
-      source: { type: "token", token },
+      description: `Nersyan — ${booking.room} #${booking.roomNumber} — ${booking.guestName} (${booking.id})`,
+      callback_url: `${origin}/api/moyasar/invoice-webhook`,
+      success_url: `${origin}/api/moyasar/invoice-success?bookingId=${encodeURIComponent(booking.id)}`,
+      back_url: `${origin}/payment`,
+      metadata: { bookingId: booking.id },
     }),
   });
 
-  const moyasarJson = await moyasarRes.json().catch(() => null);
-  if (!moyasarRes.ok || !moyasarJson || moyasarJson.status !== "initiated") {
+  const moyasarJson = (await moyasarRes.json().catch(() => null)) as { url?: string; message?: string } | null;
+  if (!moyasarRes.ok || !moyasarJson?.url) {
     return NextResponse.json(
-      { ok: false, error: moyasarJson?.source?.message ?? "Failed to initiate payment" },
+      { ok: false, error: moyasarJson?.message ?? "Failed to create Moyasar invoice" },
       { status: 400 }
     );
   }
 
-  const transactionUrl = moyasarJson?.source?.transaction_url;
-  if (!transactionUrl) {
-    return NextResponse.json({ ok: false, error: "Missing transaction_url" }, { status: 400 });
-  }
-
-  return NextResponse.json({ ok: true, transaction_url: transactionUrl });
+  return NextResponse.json({ ok: true, url: moyasarJson.url });
 }
-
