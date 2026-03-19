@@ -1,5 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 import type { AdminData } from "@/lib/admin-store";
+import { normalizeAdminData, reconcileRoomStatusesWithBookings } from "@/lib/admin-store";
 import type { AppSettings } from "@/lib/settings-types";
 
 const ADMIN_DATA_KEY = "admin_data";
@@ -32,9 +33,11 @@ export async function getAdminData(): Promise<AdminData | null> {
 export async function setAdminData(data: AdminData): Promise<boolean> {
   const sql = getSql();
   if (!sql) return false;
+  const normalized = normalizeAdminData(data);
+  const { next } = reconcileRoomStatusesWithBookings(normalized);
   try {
     await sql`
-      INSERT INTO app_data (key, value) VALUES (${ADMIN_DATA_KEY}, ${JSON.stringify(data)}::jsonb)
+      INSERT INTO app_data (key, value) VALUES (${ADMIN_DATA_KEY}, ${JSON.stringify(next)}::jsonb)
       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
     `;
     return true;

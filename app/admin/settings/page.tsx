@@ -22,6 +22,7 @@ import { CurrencySymbol } from "@/components/currency-symbol";
 
 function snapshot(s: ReturnType<typeof loadSettings>) {
   return {
+    totalHotelRooms: s.totalHotelRooms ?? 30,
     currency: s.currency,
     taxRatePercent: s.taxRatePercent,
     hotelNameEn: s.hotelNameEn ?? "Nersian Taiba",
@@ -40,6 +41,7 @@ export default function AdminSettingsPage() {
   const router = useRouter();
   const pathname = usePathname();
   const [saved, setSaved] = useState(false);
+  const [totalHotelRooms, setTotalHotelRooms] = useState("30");
   const [currency, setCurrency] = useState("SAR");
   const [taxRate, setTaxRate] = useState("15");
   const [hotelNameEn, setHotelNameEn] = useState("Nersian Taiba");
@@ -58,6 +60,7 @@ export default function AdminSettingsPage() {
     const s = loadSettings();
     const snap = snapshot(s);
     initialRef.current = snap;
+    setTotalHotelRooms(String(s.totalHotelRooms ?? 30));
     setCurrency(s.currency);
     setTaxRate(String(s.taxRatePercent));
     setHotelNameEn(snap.hotelNameEn);
@@ -72,6 +75,10 @@ export default function AdminSettingsPage() {
 
   const currentSnapshot = useCallback(
     () => ({
+      totalHotelRooms: (() => {
+        const n = parseInt(totalHotelRooms, 10);
+        return !isNaN(n) && n > 0 ? n : 30;
+      })(),
       currency: currency.trim() || "SAR",
       taxRatePercent: (() => {
         const r = parseInt(taxRate, 10);
@@ -87,6 +94,7 @@ export default function AdminSettingsPage() {
       checkinReminders,
     }),
     [
+      totalHotelRooms,
       currency,
       taxRate,
       hotelNameEn,
@@ -107,6 +115,7 @@ export default function AdminSettingsPage() {
       const init = initialRef.current!;
       return (
         cur.currency !== init.currency ||
+        cur.totalHotelRooms !== init.totalHotelRooms ||
         cur.taxRatePercent !== init.taxRatePercent ||
         cur.hotelNameEn !== init.hotelNameEn ||
         cur.hotelNameAr !== init.hotelNameAr ||
@@ -122,6 +131,7 @@ export default function AdminSettingsPage() {
   const saveAll = useCallback(() => {
     const cur = currentSnapshot();
     saveSettings({
+      totalHotelRooms: cur.totalHotelRooms,
       currency: cur.currency,
       taxRatePercent: cur.taxRatePercent,
       hotelNameEn: cur.hotelNameEn,
@@ -248,6 +258,16 @@ export default function AdminSettingsPage() {
           <div className="space-y-2">
             <Label>{t("admin.contactEmail")}</Label>
             <Input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>{t("admin.totalHotelRooms")}</Label>
+            <Input
+              type="number"
+              min={1}
+              value={totalHotelRooms}
+              onChange={(e) => setTotalHotelRooms(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">{t("admin.totalHotelRoomsDesc")}</p>
           </div>
         </CardContent>
       </Card>

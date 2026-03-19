@@ -14,7 +14,16 @@ import {
   generateBookingId,
   normalizeMedia,
   isRoomBooked,
+  normalizeRoomNumberKey,
+  normalizeAdminData,
+  normalizeAndReconcileAdminData,
+  reconcileRoomStatusesWithBookings,
 } from "@/lib/admin-store";
+
+/** Align room.status with active bookings (same logic as server /api/admin/data). */
+function reconciledSnapshot(next: AdminData): AdminData {
+  return reconcileRoomStatusesWithBookings(normalizeAdminData(next)).next;
+}
 
 type AdminDataContextValue = {
   data: AdminData;
@@ -72,13 +81,13 @@ function mergeAdminData(apiData: AdminData, localData: AdminData): AdminData {
 
 export function AdminDataProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<AdminData>(defaultAdminData);
-  const [initialized, setInitialized] = useState(false);
   const persistToApi = useCallback(async (nextData: AdminData) => {
+    const payload = reconciledSnapshot(nextData);
     try {
       await fetch(ADMIN_DATA_API, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(nextData),
+        body: JSON.stringify(payload),
       });
     } catch {
       // ignore
@@ -90,49 +99,38 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(ADMIN_DATA_API);
-        const apiData = res.ok ? ((await res.json()) as AdminData) : null;
+        const res = await fetch(ADMIN_DATA_API, { cache: "no-store" });
+        const rawJson = res.ok ? await res.json().catch(() => null) : null;
         if (cancelled) return;
 
-        if (apiData && Array.isArray(apiData.bookings)) {
-          const normalizedApi: AdminData = {
-            bookings: apiData.bookings ?? [],
-            guests: apiData.guests ?? [],
-            rooms: apiData.rooms ?? [],
-            blogPosts: apiData.blogPosts ?? [],
-            media: normalizeMedia(apiData.media),
-            notifications: apiData.notifications ?? [],
-          };
-          setData(normalizedApi);
+        const normalizedApi = normalizeAdminData(rawJson);
+        const apiReconciled = reconciledSnapshot(normalizedApi);
+        setData(apiReconciled);
 
-          // One-time migration from legacy localStorage
-          if (typeof window !== "undefined") {
-            const raw = window.localStorage.getItem(LEGACY_STORAGE_KEY);
-            if (raw) {
-              try {
-                const local = JSON.parse(raw) as AdminData;
-                const merged = mergeAdminData(normalizedApi, local);
-                if (JSON.stringify(merged) !== JSON.stringify(normalizedApi)) {
-                  await fetch(ADMIN_DATA_API, {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(merged),
-                  });
-                  setData(merged);
-                }
-                window.localStorage.removeItem(LEGACY_STORAGE_KEY);
-              } catch {
-                // ignore invalid legacy data
+        // One-time migration from legacy localStorage
+        if (typeof window !== "undefined") {
+          const raw = window.localStorage.getItem(LEGACY_STORAGE_KEY);
+          if (raw) {
+            try {
+              const local = normalizeAdminData(JSON.parse(raw) as unknown);
+              const merged = mergeAdminData(normalizedApi, local);
+              const mergedReconciled = reconciledSnapshot(merged);
+              if (JSON.stringify(mergedReconciled) !== JSON.stringify(apiReconciled)) {
+                await fetch(ADMIN_DATA_API, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(mergedReconciled),
+                });
+                setData(mergedReconciled);
               }
+              window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+            } catch {
+              // ignore invalid legacy data
             }
           }
-        } else {
-          setData(defaultAdminData);
         }
       } catch {
-        if (!cancelled) setData(defaultAdminData);
-      } finally {
-        if (!cancelled) setInitialized(true);
+        if (!cancelled) setData(normalizeAndReconcileAdminData(defaultAdminData));
       }
     })();
     return () => {
@@ -142,77 +140,99 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
 
   const refetchFromApi = useCallback(async () => {
     try {
-      const res = await fetch(ADMIN_DATA_API);
-      const apiData = res.ok ? (await res.json()) as AdminData : null;
-      if (apiData && Array.isArray(apiData.bookings)) {
-        setData({
-          bookings: apiData.bookings ?? [],
-          guests: apiData.guests ?? [],
-          rooms: apiData.rooms ?? [],
-          blogPosts: apiData.blogPosts ?? [],
-          media: normalizeMedia(apiData.media),
-          notifications: apiData.notifications ?? [],
-        });
-      }
+      const res = await fetch(ADMIN_DATA_API, { cache: "no-store" });
+      if (!res.ok) return;
+      const raw = await res.json().catch(() => null);
+      setData(normalizeAndReconcileAdminData(raw));
     } catch {
       // keep current data
     }
   }, []);
 
-  // Persist: DB only (no localStorage writes)
+  // When returning to the tab, sync from DB so badges / occupancy stay accurate.
   useEffect(() => {
-    if (!initialized) return;
-    const t = setTimeout(() => {
-      fetch(ADMIN_DATA_API, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      }).catch(() => {});
-    }, 300);
-    return () => clearTimeout(t);
-  }, [data, initialized]);
+    let t: ReturnType<typeof setTimeout> | undefined;
+    const onVisible = () => {
+      if (typeof document === "undefined" || document.visibilityState !== "visible") return;
+      clearTimeout(t);
+      t = setTimeout(() => void refetchFromApi(), 400);
+    };
+    if (typeof window === "undefined") return undefined;
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+      clearTimeout(t);
+    };
+  }, [refetchFromApi]);
+
+  /**
+   * Never auto-PATCH the full document on every state change — that overwrote the DB with a stale
+   * in-memory snapshot (e.g. after Moyasar added a booking on the server) and dropped bookings.
+   * Persist only from explicit mutations below.
+   */
 
   const addBooking = useCallback(
     (b: Omit<AdminBooking, "id" | "createdAt">) => {
       const id = generateBookingId();
-      const created: AdminBooking = {
-        ...b,
-        id,
-        createdAt: new Date().toISOString().slice(0, 10),
-      };
+      const createdAt = new Date().toISOString().slice(0, 10);
+      let createdOut: AdminBooking | undefined;
       const notif: AdminNotification = {
         id: "N" + generateId().slice(0, 6).toUpperCase(),
         title: "New booking",
-        message: `${created.guestName} - ${created.room} (${created.checkIn} → ${created.checkOut})`,
+        message: "",
         time: new Date().toISOString(),
         read: false,
         type: "booking",
         link: "/admin/bookings",
       };
-      const norm = (s: string) => String(s ?? "").trim();
       setData((d) => {
-        const nextBookings = [...d.bookings, created];
-        const nextRooms = d.rooms.map((r) =>
-          norm(r.number) === norm(created.roomNumber) ? { ...r, status: "occupied" as const } : r
+        const matched = d.rooms.find(
+          (r) => normalizeRoomNumberKey(r.number) === normalizeRoomNumberKey(b.roomNumber)
         );
-        return {
+        const created: AdminBooking = {
+          ...b,
+          id,
+          createdAt,
+          roomId: b.roomId ?? matched?.id,
+        };
+        createdOut = created;
+        notif.message = `${created.guestName} - ${created.room} (${created.checkIn} → ${created.checkOut})`;
+        const nextBookings = [...d.bookings, created];
+        const key = normalizeRoomNumberKey(created.roomNumber);
+        const nextRooms = d.rooms.map((r) =>
+          normalizeRoomNumberKey(r.number) === key ? { ...r, status: "occupied" as const } : r
+        );
+        const next: AdminData = {
           ...d,
           bookings: nextBookings,
           rooms: nextRooms,
           notifications: [notif, ...(d.notifications ?? [])],
         };
+        const reconciled = reconciledSnapshot(next);
+        void persistToApi(reconciled);
+        return reconciled;
       });
-      return created;
+      return createdOut!;
     },
-    []
+    [persistToApi]
   );
 
-  const updateBooking = useCallback((id: string, updates: Partial<AdminBooking>) => {
-    setData((d) => ({
-      ...d,
-      bookings: d.bookings.map((b) => (b.id === id ? { ...b, ...updates } : b)),
-    }));
-  }, []);
+  const updateBooking = useCallback(
+    (id: string, updates: Partial<AdminBooking>) => {
+      setData((d) => {
+        const next: AdminData = {
+          ...d,
+          bookings: d.bookings.map((b) => (b.id === id ? { ...b, ...updates } : b)),
+        };
+        const reconciled = reconciledSnapshot(next);
+        void persistToApi(reconciled);
+        return reconciled;
+      });
+    },
+    [persistToApi]
+  );
 
   const deleteBooking = useCallback((id: string) => {
     setData((d) => {
@@ -225,24 +245,41 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
       });
       const next = { ...d, bookings: nextBookings, rooms: nextRooms };
       // Persist immediately so other admin pages show updated room availability.
-      persistToApi(next);
-      return next;
+      const reconciled = reconciledSnapshot(next);
+      void persistToApi(reconciled);
+      return reconciled;
     });
   }, [persistToApi]);
 
-  const addGuest = useCallback((g: Omit<AdminGuest, "id">) => {
-    const id = generateId().slice(0, 8);
-    const guest: AdminGuest = { ...g, id };
-    setData((d) => ({ ...d, guests: [...d.guests, guest] }));
-    return guest;
-  }, []);
+  const addGuest = useCallback(
+    (g: Omit<AdminGuest, "id">) => {
+      const id = generateId().slice(0, 8);
+      const guest: AdminGuest = { ...g, id };
+      setData((d) => {
+        const next: AdminData = { ...d, guests: [...d.guests, guest] };
+        const reconciled = reconciledSnapshot(next);
+        void persistToApi(reconciled);
+        return reconciled;
+      });
+      return guest;
+    },
+    [persistToApi]
+  );
 
-  const updateGuest = useCallback((id: string, updates: Partial<AdminGuest>) => {
-    setData((d) => ({
-      ...d,
-      guests: d.guests.map((g) => (g.id === id ? { ...g, ...updates } : g)),
-    }));
-  }, []);
+  const updateGuest = useCallback(
+    (id: string, updates: Partial<AdminGuest>) => {
+      setData((d) => {
+        const next: AdminData = {
+          ...d,
+          guests: d.guests.map((g) => (g.id === id ? { ...g, ...updates } : g)),
+        };
+        const reconciled = reconciledSnapshot(next);
+        void persistToApi(reconciled);
+        return reconciled;
+      });
+    },
+    [persistToApi]
+  );
 
   const deleteGuest = useCallback((id: string) => {
     setData((d) => {
@@ -254,8 +291,9 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
         return isRoomBooked(snapshot, r) ? r : { ...r, status: "available" as const };
       });
       const next = { ...d, guests: nextGuests, bookings: nextBookings, rooms: nextRooms };
-      persistToApi(next);
-      return next;
+      const reconciled = reconciledSnapshot(next);
+      void persistToApi(reconciled);
+      return reconciled;
     });
   }, [persistToApi]);
 
@@ -264,37 +302,77 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
     [data.guests]
   );
 
-  const addRoom = useCallback((r: Omit<AdminRoom, "id">) => {
-    const id = generateId().slice(0, 8);
-    const room: AdminRoom = { ...r, id };
-    setData((d) => ({ ...d, rooms: [...d.rooms, room] }));
-    return room;
-  }, []);
+  const addRoom = useCallback(
+    (r: Omit<AdminRoom, "id">) => {
+      const id = generateId().slice(0, 8);
+      const room: AdminRoom = { ...r, id };
+      setData((d) => {
+        const next: AdminData = { ...d, rooms: [...d.rooms, room] };
+        const reconciled = reconciledSnapshot(next);
+        void persistToApi(reconciled);
+        return reconciled;
+      });
+      return room;
+    },
+    [persistToApi]
+  );
 
-  const updateRoom = useCallback((id: string, updates: Partial<AdminRoom>) => {
-    setData((d) => ({
-      ...d,
-      rooms: d.rooms.map((r) => (r.id === id ? { ...r, ...updates } : r)),
-    }));
-  }, []);
+  const updateRoom = useCallback(
+    (id: string, updates: Partial<AdminRoom>) => {
+      setData((d) => {
+        const next: AdminData = {
+          ...d,
+          rooms: d.rooms.map((r) => (r.id === id ? { ...r, ...updates } : r)),
+        };
+        const reconciled = reconciledSnapshot(next);
+        void persistToApi(reconciled);
+        return reconciled;
+      });
+    },
+    [persistToApi]
+  );
 
-  const deleteRoom = useCallback((id: string) => {
-    setData((d) => ({ ...d, rooms: d.rooms.filter((r) => r.id !== id) }));
-  }, []);
+  const deleteRoom = useCallback(
+    (id: string) => {
+      setData((d) => {
+        const next: AdminData = { ...d, rooms: d.rooms.filter((r) => r.id !== id) };
+        const reconciled = reconciledSnapshot(next);
+        void persistToApi(reconciled);
+        return reconciled;
+      });
+    },
+    [persistToApi]
+  );
 
-  const addBlogPost = useCallback((p: Omit<BlogPost, "id">) => {
-    const id = generateId().slice(0, 8);
-    const post: BlogPost = { ...p, id };
-    setData((d) => ({ ...d, blogPosts: [...d.blogPosts, post] }));
-    return post;
-  }, []);
+  const addBlogPost = useCallback(
+    (p: Omit<BlogPost, "id">) => {
+      const id = generateId().slice(0, 8);
+      const post: BlogPost = { ...p, id };
+      setData((d) => {
+        const next: AdminData = { ...d, blogPosts: [...d.blogPosts, post] };
+        const reconciled = reconciledSnapshot(next);
+        void persistToApi(reconciled);
+        return reconciled;
+      });
+      return post;
+    },
+    [persistToApi]
+  );
 
-  const updateBlogPost = useCallback((id: string, updates: Partial<BlogPost>) => {
-    setData((d) => ({
-      ...d,
-      blogPosts: d.blogPosts.map((p) => (p.id === id ? { ...p, ...updates } : p)),
-    }));
-  }, []);
+  const updateBlogPost = useCallback(
+    (id: string, updates: Partial<BlogPost>) => {
+      setData((d) => {
+        const next: AdminData = {
+          ...d,
+          blogPosts: d.blogPosts.map((p) => (p.id === id ? { ...p, ...updates } : p)),
+        };
+        const reconciled = reconciledSnapshot(next);
+        void persistToApi(reconciled);
+        return reconciled;
+      });
+    },
+    [persistToApi]
+  );
 
   const getBlogPostById = useCallback(
     (id: string) => data.blogPosts.find((p) => p.id === id),
@@ -306,30 +384,62 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
     [data.blogPosts]
   );
 
-  const addMedia = useCallback((m: Omit<MediaItem, "id">) => {
-    const id = generateId().slice(0, 8);
-    const item: MediaItem = { ...m, id };
-    setData((d) => ({ ...d, media: [...d.media, item] }));
-    return item;
-  }, []);
+  const addMedia = useCallback(
+    (m: Omit<MediaItem, "id">) => {
+      const id = generateId().slice(0, 8);
+      const item: MediaItem = { ...m, id };
+      setData((d) => {
+        const next: AdminData = { ...d, media: [...d.media, item] };
+        const reconciled = reconciledSnapshot(next);
+        void persistToApi(reconciled);
+        return reconciled;
+      });
+      return item;
+    },
+    [persistToApi]
+  );
 
-  const deleteMedia = useCallback((id: string) => {
-    setData((d) => ({ ...d, media: d.media.filter((m) => m.id !== id) }));
-  }, []);
+  const deleteMedia = useCallback(
+    (id: string) => {
+      setData((d) => {
+        const next: AdminData = { ...d, media: d.media.filter((m) => m.id !== id) };
+        const reconciled = reconciledSnapshot(next);
+        void persistToApi(reconciled);
+        return reconciled;
+      });
+    },
+    [persistToApi]
+  );
 
-  const markNotificationRead = useCallback((id: string) => {
-    setData((d) => ({
-      ...d,
-      notifications: (d.notifications ?? []).map((n) => (n.id === id ? { ...n, read: true } : n)),
-    }));
-  }, []);
+  const markNotificationRead = useCallback(
+    (id: string) => {
+      setData((d) => {
+        const next: AdminData = {
+          ...d,
+          notifications: (d.notifications ?? []).map((n) => (n.id === id ? { ...n, read: true } : n)),
+        };
+        const reconciled = reconciledSnapshot(next);
+        void persistToApi(reconciled);
+        return reconciled;
+      });
+    },
+    [persistToApi]
+  );
 
-  const deleteNotification = useCallback((id: string) => {
-    setData((d) => ({
-      ...d,
-      notifications: (d.notifications ?? []).filter((n) => n.id !== id),
-    }));
-  }, []);
+  const deleteNotification = useCallback(
+    (id: string) => {
+      setData((d) => {
+        const next: AdminData = {
+          ...d,
+          notifications: (d.notifications ?? []).filter((n) => n.id !== id),
+        };
+        const reconciled = reconciledSnapshot(next);
+        void persistToApi(reconciled);
+        return reconciled;
+      });
+    },
+    [persistToApi]
+  );
 
   const value: AdminDataContextValue = {
     data,

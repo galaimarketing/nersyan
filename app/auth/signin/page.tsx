@@ -11,7 +11,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { I18nProvider, useI18n, LanguageToggle } from "@/lib/i18n";
-import { getSupabaseBrowser, hasSupabaseAuth } from "@/lib/supabase-browser";
+import { dispatchNersianAuthChanged } from "@/lib/use-app-user";
+import { startSupabaseOAuthRedirect } from "@/lib/supabase-oauth-client";
 
 function SignInForm() {
   const { t, language, dir } = useI18n();
@@ -21,6 +22,7 @@ function SignInForm() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [oauthBusy, setOauthBusy] = useState<null | "google" | "apple">(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -45,6 +47,7 @@ function SignInForm() {
           "nersian-user",
           JSON.stringify({ email, rememberMe })
         );
+        dispatchNersianAuthChanged();
       }
 
       if (typeof window !== "undefined") {
@@ -188,30 +191,21 @@ function SignInForm() {
                   type="button"
                   variant="outline"
                   className="w-full h-12 rounded-lg flex items-center justify-center gap-3"
+                  disabled={!!oauthBusy}
                   onClick={async () => {
+                    setError(null);
                     const next = searchParams.get("next") || "/";
-                    if (hasSupabaseAuth() && typeof window !== "undefined") {
-                      const supabase = getSupabaseBrowser();
-                      if (supabase) {
-                        const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
-                        await supabase.auth.signInWithOAuth({
-                          provider: "google",
-                          options: { redirectTo },
-                        });
-                        return;
+                    setOauthBusy("google");
+                    const result = await startSupabaseOAuthRedirect("google", next);
+                    if (!result.ok) {
+                      setOauthBusy(null);
+                      if (result.reason === "not_configured") {
+                        setError(t("auth.oauthNotConfigured"));
+                      } else {
+                        setError(
+                          `${t("auth.oauthCouldNotStart")}${result.detail ? `: ${result.detail}` : ""}`
+                        );
                       }
-                    }
-                    if (typeof window !== "undefined") {
-                      window.localStorage.setItem(
-                        "nersian-user",
-                        JSON.stringify({ email: "google-user@example.com", provider: "google" })
-                      );
-                      window.alert(
-                        language === "ar"
-                          ? "تم تسجيل الدخول عبر Google (تجريبيًا). أضف NEXT_PUBLIC_SUPABASE_URL و NEXT_PUBLIC_SUPABASE_ANON_KEY وفعّل Google في Supabase للمسار الكامل."
-                          : "Signed in with Google (demo). Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY and enable Google in Supabase for full OAuth."
-                      );
-                      router.push(next);
                     }
                   }}
                 >
@@ -221,37 +215,32 @@ function SignInForm() {
                     width={20}
                     height={20}
                   />
-                  {t("auth.continueGoogle")}
+                  {oauthBusy === "google"
+                    ? language === "ar"
+                      ? "جاري التوجيه…"
+                      : "Redirecting…"
+                    : t("auth.continueGoogle")}
                 </Button>
 
                 <Button
                   type="button"
                   variant="outline"
                   className="w-full h-12 rounded-lg flex items-center justify-center gap-3"
+                  disabled={!!oauthBusy}
                   onClick={async () => {
+                    setError(null);
                     const next = searchParams.get("next") || "/";
-                    if (hasSupabaseAuth() && typeof window !== "undefined") {
-                      const supabase = getSupabaseBrowser();
-                      if (supabase) {
-                        const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
-                        await supabase.auth.signInWithOAuth({
-                          provider: "apple",
-                          options: { redirectTo },
-                        });
-                        return;
+                    setOauthBusy("apple");
+                    const result = await startSupabaseOAuthRedirect("apple", next);
+                    if (!result.ok) {
+                      setOauthBusy(null);
+                      if (result.reason === "not_configured") {
+                        setError(t("auth.oauthNotConfigured"));
+                      } else {
+                        setError(
+                          `${t("auth.oauthCouldNotStart")}${result.detail ? `: ${result.detail}` : ""}`
+                        );
                       }
-                    }
-                    if (typeof window !== "undefined") {
-                      window.localStorage.setItem(
-                        "nersian-user",
-                        JSON.stringify({ email: "apple-user@example.com", provider: "apple" })
-                      );
-                      window.alert(
-                        language === "ar"
-                          ? "تم تسجيل الدخول عبر Apple (تجريبيًا). أضف مفاتيح Supabase وفعّل Apple للمسار الكامل."
-                          : "Signed in with Apple (demo). Add Supabase keys and enable Apple for full OAuth."
-                      );
-                      router.push(next);
                     }
                   }}
                 >
@@ -263,7 +252,11 @@ function SignInForm() {
                     className="dark:invert"
                     unoptimized
                   />
-                  {t("auth.continueApple")}
+                  {oauthBusy === "apple"
+                    ? language === "ar"
+                      ? "جاري التوجيه…"
+                      : "Redirecting…"
+                    : t("auth.continueApple")}
                 </Button>
               </div>
 

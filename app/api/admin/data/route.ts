@@ -1,19 +1,35 @@
 import { NextResponse } from "next/server";
 import { getAdminData, setAdminData, hasDatabase } from "@/lib/db";
 import type { AdminData } from "@/lib/admin-store";
-import { defaultAdminData } from "@/lib/admin-store";
+import {
+  defaultAdminData,
+  normalizeAdminData,
+  normalizeAndReconcileAdminData,
+  reconcileRoomStatusesWithBookings,
+} from "@/lib/admin-store";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   if (!hasDatabase()) {
-    return NextResponse.json(defaultAdminData);
+    return NextResponse.json(normalizeAndReconcileAdminData(defaultAdminData), {
+      headers: { "Cache-Control": "no-store, max-age=0" },
+    });
   }
   const data = await getAdminData();
   if (data === null) {
-    return NextResponse.json(defaultAdminData);
+    return NextResponse.json(normalizeAndReconcileAdminData(defaultAdminData), {
+      headers: { "Cache-Control": "no-store, max-age=0" },
+    });
   }
-  return NextResponse.json(data);
+  const normalized = normalizeAdminData(data);
+  const { next, changed } = reconcileRoomStatusesWithBookings(normalized);
+  if (changed) {
+    await setAdminData(next);
+  }
+  return NextResponse.json(next, {
+    headers: { "Cache-Control": "no-store, max-age=0" },
+  });
 }
 
 export async function PATCH(request: Request) {

@@ -17,6 +17,10 @@ export function loadSettings(): AppSettings {
     if (!raw) return defaults;
     const parsed = JSON.parse(raw) as Partial<AppSettings>;
     return {
+      totalHotelRooms:
+        typeof parsed.totalHotelRooms === "number" && parsed.totalHotelRooms > 0
+          ? Math.floor(parsed.totalHotelRooms)
+          : defaults.totalHotelRooms,
       taxRatePercent: typeof parsed.taxRatePercent === "number" ? parsed.taxRatePercent : defaults.taxRatePercent,
       currency: parsed.currency ?? defaults.currency,
       hotelNameEn: parsed.hotelNameEn ?? defaults.hotelNameEn,

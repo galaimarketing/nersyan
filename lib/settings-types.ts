@@ -1,6 +1,8 @@
 /** Shared settings type for server and client. */
 
 export interface AppSettings {
+  /** Total rooms in the hotel (denominator for admin occupancy %). */
+  totalHotelRooms: number;
   taxRatePercent: number;
   currency: string;
   hotelNameEn?: string;
@@ -14,6 +16,7 @@ export interface AppSettings {
 }
 
 export const defaultAppSettings: AppSettings = {
+  totalHotelRooms: 30,
   taxRatePercent: 15,
   currency: "SAR",
   hotelNameEn: "Nersian Taiba",

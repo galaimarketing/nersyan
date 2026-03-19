@@ -3,8 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
-
-const NERSIAN_USER_KEY = "nersian-user";
+import { NERSIAN_USER_KEY, dispatchNersianAuthChanged } from "@/lib/use-app-user";
 
 function AuthCallbackContent() {
   const router = useRouter();
@@ -20,6 +19,25 @@ function AuthCallbackContent() {
         setStatus("error");
         setTimeout(() => router.replace("/auth/signin"), 2000);
         return;
+      }
+
+      const oauthErr =
+        searchParams.get("error_description") ?? searchParams.get("error");
+      if (oauthErr) {
+        setStatus("error");
+        setTimeout(() => router.replace("/auth/signin?next=" + encodeURIComponent(next)), 2500);
+        return;
+      }
+
+      // PKCE: Google/Apple redirect includes ?code= — must exchange before getSession() sees the user
+      const code = searchParams.get("code");
+      if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        if (exchangeError) {
+          setStatus("error");
+          setTimeout(() => router.replace("/auth/signin?next=" + encodeURIComponent(next)), 2500);
+          return;
+        }
       }
 
       const {
@@ -47,6 +65,7 @@ function AuthCallbackContent() {
             NERSIAN_USER_KEY,
             JSON.stringify({ email, fullName, phone, provider })
           );
+          dispatchNersianAuthChanged();
         }
         setStatus("ok");
         router.replace(next);

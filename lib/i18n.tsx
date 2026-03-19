@@ -21,6 +21,10 @@ const translations: Translations = {
   "nav.blog": { ar: "المدونة", en: "Blog" },
   "nav.login": { ar: "تسجيل الدخول", en: "Sign In" },
   "nav.signup": { ar: "إنشاء حساب", en: "Sign Up" },
+  "nav.accountMenu": { ar: "الحساب", en: "Account" },
+  "nav.guestPrompt": { ar: "سجّل الدخول لمتابعة حجوزاتك", en: "Sign in to manage your bookings" },
+  "nav.myBookings": { ar: "حجوزاتي", en: "My bookings" },
+  "nav.signOut": { ar: "تسجيل الخروج", en: "Sign out" },
   
   // Hero
   "hero.title": { ar: "نرسيان طيبة", en: "Nersian Taiba" },
@@ -90,6 +94,11 @@ const translations: Translations = {
   "auth.privacy": { ar: "سياسة الخصوصية", en: "Privacy Policy" },
   "auth.continueGoogle": { ar: "المتابعة مع Google", en: "Continue with Google" },
   "auth.continueApple": { ar: "المتابعة مع Apple", en: "Continue with Apple" },
+  "auth.oauthNotConfigured": {
+    ar: "تسجيل الدخول عبر Google أو Apple يحتاج إلى ضبط Supabase: أضف NEXT_PUBLIC_SUPABASE_URL و NEXT_PUBLIC_SUPABASE_ANON_KEY في .env.local، فعّل المزود في لوحة Supabase ← Authentication، وأضف رابط إعادة التوجيه مثل http://localhost:3000/auth/callback",
+    en: "Google/Apple sign-in requires Supabase: set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local, enable the provider under Supabase → Authentication, and add your redirect URL (e.g. http://localhost:3000/auth/callback).",
+  },
+  "auth.oauthCouldNotStart": { ar: "تعذر بدء تسجيل الدخول", en: "Could not start sign-in" },
   
   // Footer
   "footer.rights": { ar: "جميع الحقوق محفوظة", en: "All rights reserved" },
@@ -179,6 +188,11 @@ const translations: Translations = {
   "admin.savePricing": { ar: "حفظ الأسعار", en: "Save pricing" },
   "admin.general": { ar: "عام", en: "General" },
   "admin.generalDesc": { ar: "اسم الفندق ومعلومات الاتصال", en: "Hotel name and contact" },
+  "admin.totalHotelRooms": { ar: "إجمالي غرف الفندق", en: "Total hotel rooms" },
+  "admin.totalHotelRoomsDesc": {
+    ar: "يُستخدم لحساب نسبة الإشغال في لوحة التحكم (الغرف المحجوزة ÷ هذا العدد).",
+    en: "Used for dashboard occupancy (occupied rooms in DB ÷ this count).",
+  },
   "admin.hotelNameEn": { ar: "اسم الفندق (EN)", en: "Hotel name (EN)" },
   "admin.hotelNameAr": { ar: "اسم الفندق (AR)", en: "Hotel name (AR)" },
   "admin.contactEmail": { ar: "البريد الإلكتروني للتواصل", en: "Contact email" },
@@ -211,6 +225,12 @@ const translations: Translations = {
   "admin.booked": { ar: "محجوزة", en: "Booked" },
   "admin.available": { ar: "متاحة", en: "Available" },
   "admin.maintenance": { ar: "صيانة", en: "Maintenance" },
+  "admin.noRoomImage": { ar: "لا توجد صورة", en: "No image" },
+  "admin.roomType.standard": { ar: "غرفة قياسية", en: "Standard Room" },
+  "admin.roomType.deluxe": { ar: "غرفة ديلوكس", en: "Deluxe Room" },
+  "admin.roomType.premiumSuite": { ar: "جناح فاخر", en: "Premium Suite" },
+  "admin.roomType.family": { ar: "غرفة عائلية", en: "Family Room" },
+  "admin.roomType.presidential": { ar: "جناح رئاسي", en: "Presidential Suite" },
   "admin.quickActions": { ar: "إجراءات سريعة", en: "Quick Actions" },
   "admin.commonAdminTasks": { ar: "مهام إدارية شائعة", en: "Common administrative tasks" },
   "admin.addNewRoom": { ar: "إضافة غرفة جديدة", en: "Add New Room" },

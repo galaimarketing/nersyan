@@ -9,22 +9,28 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AdminBooking } from "@/lib/admin-store";
+import { useAppUser } from "@/lib/use-app-user";
 
 function MyBookingsContent() {
   const { t, language, dir } = useI18n();
   const router = useRouter();
+  const { user, loading: authLoading } = useAppUser();
   const [bookings, setBookings] = useState<AdminBooking[] | null>(null);
   const [guestName, setGuestName] = useState<string | null>(null);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user?.email) {
+      router.replace("/auth/signin?next=/my-bookings");
+    }
+  }, [authLoading, user?.email, router]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    const u = user;
+    if (!u?.email) return;
+
     async function load() {
-      if (typeof window !== "undefined") {
-        const userRaw = window.localStorage.getItem("nersian-user");
-        if (!userRaw) {
-          router.replace("/auth/signin?next=/my-bookings");
-          return;
-        }
-      }
       try {
         const res = await fetch("/api/admin/data", { cache: "no-store" });
         if (!res.ok) {
@@ -33,12 +39,12 @@ function MyBookingsContent() {
         }
         const data = (await res.json()) as { bookings?: AdminBooking[]; guests?: { id: string; name: string }[] };
 
-        const user = JSON.parse(window.localStorage.getItem("nersian-user") ?? "{}") as { email?: string };
-        const email = user.email;
+        const email = u.email;
 
         // Filter by signed-in user email (stable across refresh)
-        let filtered = (data.bookings ?? []).filter((b) => (email ? b.email === email : true));
+        const filtered = (data.bookings ?? []).filter((b) => (email ? b.email === email : true));
         if (filtered.length > 0) setGuestName(filtered[0].guestName);
+        else setGuestName(u.fullName ?? null);
 
         setBookings(filtered);
       } catch {
@@ -46,16 +52,16 @@ function MyBookingsContent() {
       }
     }
 
-    load();
-  }, []);
+    void load();
+  }, [authLoading, user]);
 
   const hasBookings = bookings != null && bookings.length > 0;
 
   return (
-    <div className="min-h-screen bg-background" dir={dir}>
+    <div className="flex min-h-screen min-h-dvh flex-col bg-background" dir={dir}>
       <Header />
-      <main className="pb-20 pt-32">
-        <div className="mx-auto max-w-3xl px-6 lg:px-12">
+      <main className="flex flex-1 flex-col pb-20 pt-32">
+        <div className="mx-auto w-full max-w-3xl flex-1 px-6 lg:px-12">
           <h1 className="mb-1 text-3xl font-bold text-foreground md:text-4xl">
             {t("myBookings.title")}
           </h1>
@@ -69,7 +75,7 @@ function MyBookingsContent() {
           </p>
 
           <div className="space-y-6">
-            {!bookings && (
+            {(authLoading || !user?.email || bookings === null) && (
               <div className="rounded-2xl border border-border bg-card/70 p-6 text-sm text-muted-foreground shadow-sm backdrop-blur-sm">
                 {t("general.loading")}
               </div>

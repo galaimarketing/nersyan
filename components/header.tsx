@@ -2,12 +2,13 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useScroll, motion } from "framer-motion";
-import { Menu, X, ChevronRight, User } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { useI18n, LanguageToggle } from "@/lib/i18n";
 import { useSettings } from "@/lib/settings";
+import { HeaderUserMenu } from "@/components/header-user-menu";
 
 const Logo = ({ className }: { className?: string }) => {
   const { language } = useI18n();
@@ -31,10 +32,15 @@ const Logo = ({ className }: { className?: string }) => {
 };
 
 export function Header() {
-  const { t, dir, language } = useI18n();
+  const pathname = usePathname();
+  const { t, dir } = useI18n();
   const [menuState, setMenuState] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
   const { scrollYProgress } = useScroll();
+
+  /** Only the home hero uses light-on-dark nav until scroll; inner pages are always light bg → solid nav. */
+  const isHomeHero = pathname === "/";
+  const showSolidNav = !isHomeHero || scrolled;
 
   React.useEffect(() => {
     const unsubscribe = scrollYProgress.on("change", (latest) => {
@@ -58,18 +64,19 @@ export function Header() {
         <div
           className={cn(
             "mx-auto max-w-7xl rounded-3xl px-6 transition-all duration-300 lg:px-12",
-            scrolled && "bg-background/80 backdrop-blur-2xl"
+            showSolidNav &&
+              "border border-border/60 bg-background/95 shadow-sm backdrop-blur-xl dark:border-border dark:bg-background/90"
           )}
         >
           <motion.div
             className={cn(
               "relative flex flex-wrap items-center justify-between gap-6 py-3 duration-200 lg:gap-0 lg:py-6",
-              scrolled && "lg:py-4"
+              showSolidNav && "lg:py-4"
             )}
           >
             <div className="flex w-full items-center justify-between gap-12 lg:w-auto">
               <Link href="/" aria-label="home" className="flex items-center space-x-2">
-                <Logo className={scrolled ? "text-foreground" : "text-white"} />
+                <Logo className={showSolidNav ? "text-foreground" : "text-white"} />
               </Link>
 
               <button
@@ -80,14 +87,14 @@ export function Header() {
                 <Menu
                   className={cn(
                     "m-auto size-6 duration-200",
-                    scrolled ? "text-foreground" : "text-white",
+                    showSolidNav ? "text-foreground" : "text-white",
                     menuState && "rotate-180 scale-0 opacity-0"
                   )}
                 />
                 <X
                   className={cn(
                     "absolute inset-0 m-auto size-6 -rotate-180 scale-0 opacity-0 duration-200",
-                    scrolled ? "text-foreground" : "text-white",
+                    showSolidNav ? "text-foreground" : "text-white",
                     menuState && "rotate-0 scale-100 opacity-100"
                   )}
                 />
@@ -101,7 +108,7 @@ export function Header() {
                         href={item.href}
                         className={cn(
                           "block duration-150",
-                          scrolled
+                          showSolidNav
                             ? "text-muted-foreground hover:text-foreground"
                             : "text-white hover:text-white/80"
                         )}
@@ -137,16 +144,7 @@ export function Header() {
               </div>
               <div className="flex w-full flex-col items-center gap-3 sm:flex-row md:w-fit">
                 <LanguageToggle />
-                <Button
-                  asChild
-                  variant="outline"
-                  size="icon-sm"
-                  className="rounded-full"
-                >
-                  <Link href="/my-bookings" aria-label={language === "ar" ? "حسابي" : "My account"}>
-                    <User className="h-4 w-4" />
-                  </Link>
-                </Button>
+                <HeaderUserMenu showSolidNav={showSolidNav} />
               </div>
             </div>
           </motion.div>

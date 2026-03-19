@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import {
   BedDouble,
@@ -14,7 +15,8 @@ import { Button } from "@/components/ui/button";
 import { useAdminData } from "@/components/admin-data-provider";
 import { useI18n } from "@/lib/i18n";
 import { CurrencySymbol } from "@/components/currency-symbol";
-import { isRoomBooked } from "@/lib/admin-store";
+import { formatRoomNumberForLang, translatedAdminRoomType } from "@/lib/admin-room-display";
+import { useSettings } from "@/lib/settings";
 
 const statKeys = [
   { key: "admin.totalBookings", iconKey: "bookings", icon: Calendar },
@@ -24,8 +26,13 @@ const statKeys = [
 ] as const;
 
 export default function AdminDashboard() {
-  const { t } = useI18n();
-  const { data } = useAdminData();
+  const { t, language } = useI18n();
+  const settings = useSettings();
+  const { data, refetchFromApi } = useAdminData();
+
+  useEffect(() => {
+    void refetchFromApi();
+  }, [refetchFromApi]);
 
   const totalBookings = data.bookings.length;
   const now = new Date();
@@ -41,14 +48,9 @@ export default function AdminDashboard() {
         })()
     )
     .reduce((sum, b) => sum + b.amount, 0);
-  const getEffectiveRoomStatus = (r: typeof data.rooms[number]) => {
-    if (r.status === "occupied" && !isRoomBooked(data, r)) return "available";
-    return r.status;
-  };
-  const occupiedRooms = data.rooms.filter((r) => getEffectiveRoomStatus(r) === "occupied").length;
-  const occupancyTotal = Math.max(1, data.rooms.length);
-  const occupancyRate =
-    `${Math.round((occupiedRooms / occupancyTotal) * 100)}%`;
+  const occupiedRooms = data.rooms.filter((r) => r.status === "occupied").length;
+  const occupancyDenominator = Math.max(1, settings.totalHotelRooms ?? 30);
+  const occupancyRate = `${Math.round((occupiedRooms / occupancyDenominator) * 100)}%`;
   const totalGuests = data.bookings
     .filter((b) => b.status !== "cancelled")
     .reduce((sum, b) => sum + (Number.isFinite(b.guests) ? b.guests : 0), 0);
@@ -126,7 +128,8 @@ export default function AdminDashboard() {
                     <div>
                       <p className="font-medium text-foreground">{b.guestName}</p>
                       <p className="text-xs text-muted-foreground">
-                        {b.room} · {b.checkIn} – {b.checkOut}
+                        {b.room}
+                        {b.roomNumber ? ` · #${b.roomNumber}` : ""} · {b.checkIn} – {b.checkOut}
                       </p>
                     </div>
                     <span className="text-muted-foreground">{b.status}</span>
@@ -164,7 +167,7 @@ export default function AdminDashboard() {
             ) : (
               <div className="space-y-4">
                 {roomStatus.map((r) => {
-                  const displayStatus = getEffectiveRoomStatus(r);
+                  const displayStatus = r.status;
                   const statusLabel =
                     displayStatus === "occupied"
                       ? t("admin.booked")
@@ -177,8 +180,10 @@ export default function AdminDashboard() {
                       className="flex items-center justify-between rounded-lg border p-3 text-sm"
                     >
                       <div>
-                        <p className="font-medium text-foreground">{t("admin.roomLabel")} {r.number}</p>
-                        <p className="text-xs text-muted-foreground">{r.type}</p>
+                        <p className="font-medium text-foreground">
+                          {t("admin.roomLabel")} {formatRoomNumberForLang(r.number, language)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{translatedAdminRoomType(t, r.type)}</p>
                       </div>
                       <span
                         className={

@@ -43,7 +43,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useAdminData } from "@/components/admin-data-provider";
-import type { BookingStatus, PaymentStatus } from "@/lib/admin-store";
+import { normalizeRoomNumberKey, type BookingStatus, type PaymentStatus } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
 import { CurrencySymbol } from "@/components/currency-symbol";
 
@@ -467,7 +467,7 @@ export default function BookingsPageContent() {
                   <TableBody>
                     {bookingsByGuest.map((booking, bi) => {
                       const roomRecord = data.rooms.find(
-                        (r) => r.number.trim() === booking.roomNumber.trim()
+                        (r) => normalizeRoomNumberKey(r.number) === normalizeRoomNumberKey(booking.roomNumber)
                       );
                       return (
                         <TableRow key={`${booking.id}-${booking.guestId}-${booking.checkIn}-${booking.createdAt}-${bi}`}>

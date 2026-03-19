@@ -31,9 +31,9 @@ import {
 } from "@/components/ui/select";
 import { useAdminData } from "@/components/admin-data-provider";
 import type { AdminRoom, AdminData } from "@/lib/admin-store";
-import { isRoomBooked } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
 import { CurrencySymbol } from "@/components/currency-symbol";
+import { formatRoomNumberForLang, translatedAdminRoomType } from "@/lib/admin-room-display";
 
 const ROOM_TYPES = ["Standard Room", "Deluxe Room", "Premium Suite", "Family Room", "Presidential Suite"];
 
@@ -262,8 +262,8 @@ function EditRoomForm({
 }
 
 export default function RoomsPage() {
-  const { t } = useI18n();
-  const { data, addRoom, updateRoom, deleteRoom } = useAdminData();
+  const { t, language } = useI18n();
+  const { data, addRoom, updateRoom, deleteRoom, refetchFromApi } = useAdminData();
   const [mounted, setMounted] = useState(false);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -281,23 +281,17 @@ export default function RoomsPage() {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    void refetchFromApi();
+  }, [refetchFromApi]);
+
   const editRoom = editRoomId ? data.rooms.find((r) => r.id === editRoomId) : null;
   const rooms = data.rooms;
-  /**
-   * If admin stored the room as "occupied" but there is no active booking anymore,
-   * show it as "available" automatically.
-   * If admin stored it as "available", we keep it available even if bookings exist.
-   */
-  const getEffectiveStatus = (room: AdminRoom) => {
-    if (room.status === "occupied" && !isRoomBooked(data, room)) return "available";
-    return room.status;
-  };
   const filteredRooms = rooms.filter((room) => {
     const matchesSearch =
       room.number.toLowerCase().includes(search.toLowerCase()) ||
       room.type.toLowerCase().includes(search.toLowerCase());
-    const effectiveStatus = getEffectiveStatus(room);
-    const matchesStatus = filterStatus === "all" || effectiveStatus === filterStatus;
+    const matchesStatus = filterStatus === "all" || room.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
 
@@ -575,18 +569,23 @@ export default function RoomsPage() {
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                    <span className="text-sm">No image</span>
+                    <span className="text-sm">{t("admin.noRoomImage")}</span>
                   </div>
                 )}
-                <div className="absolute end-2 top-2">
-                  {getStatusBadge(getEffectiveStatus(room))}
+                <div className="absolute end-2 top-2" lang={language} dir={language === "ar" ? "rtl" : "ltr"}>
+                  {getStatusBadge(room.status)}
                 </div>
               </div>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="font-semibold text-foreground">{t("admin.roomLabel")} {room.number}</h3>
-                    <p className="text-sm text-muted-foreground">{room.type}</p>
+                    <h3 className="font-semibold text-foreground">
+                      {t("admin.roomLabel")}{" "}
+                      {formatRoomNumberForLang(room.number, language)}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {translatedAdminRoomType(t, room.type)}
+                    </p>
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
