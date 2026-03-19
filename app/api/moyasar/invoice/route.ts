@@ -42,6 +42,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "Missing booking payload" }, { status: 400 });
   }
 
+  // sk_test_* = sandbox (test cards only). sk_live_* = real charges on real cards (after Moyasar live approval).
   const secretKey = getEnv("MOYASAR_SECRET_KEY");
   if (!secretKey) {
     return NextResponse.json({ ok: false, error: "Moyasar secret key missing" }, { status: 500 });

@@ -25,6 +25,25 @@ function PaymentContent() {
   const [rawPayload, setRawPayload] = useState<string | null>(null);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
+  const [moyasarMode, setMoyasarMode] = useState<"live" | "test" | "unset" | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/moyasar/config", { cache: "no-store" });
+        const j = (await res.json()) as { mode?: string };
+        if (!cancelled && (j.mode === "live" || j.mode === "test" || j.mode === "unset")) {
+          setMoyasarMode(j.mode);
+        }
+      } catch {
+        if (!cancelled) setMoyasarMode("unset");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -210,9 +229,13 @@ function PaymentContent() {
           </div>
 
           <p className="text-center text-xs text-muted-foreground">
-            {language === "ar"
-              ? "سيتم فتح صفحة دفع Moyasar في نفس النافذة. إذا رأيت أزرار فيزا وApple منفصلة أو رسالة «تجريبي» فالموقع لم يُحدَّث — أعد النشر من Vercel وامسح ذاكرة التخزين المؤقت."
-              : "Moyasar opens in this window. If you still see separate Visa/Apple buttons or a “demo” message, the live site is an old deploy — redeploy on Vercel and hard-refresh (or clear cache)."}
+            {moyasarMode === "live"
+              ? language === "ar"
+                ? "تأكد في لوحة Moyasar أن حسابك مفعّل للدفع الحي، وأن نطاق موقعك مسموح به."
+                : "Ensure your Moyasar account is live-enabled and your domain is allowed in the Moyasar dashboard."
+              : language === "ar"
+                ? "سيتم فتح صفحة دفع Moyasar في نفس النافذة."
+                : "Moyasar checkout opens in this window."}
           </p>
 
           <div className="text-center">
