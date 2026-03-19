@@ -191,10 +191,14 @@ export interface PendingBookingPayload {
   guestEmail?: string;
   total?: number;
   language?: string;
+  status?: BookingStatus;
+  paymentStatus?: PaymentStatus;
 }
 
 /** Persist a customer booking into admin data (guest + booking). Call after payment/confirm. */
-export async function addCustomerBookingToStore(payload: PendingBookingPayload): Promise<void> {
+export async function addCustomerBookingToStore(
+  payload: PendingBookingPayload
+): Promise<AdminBooking> {
   if (typeof fetch === "undefined") return;
   let data: AdminData | null = null;
   try {
@@ -234,9 +238,9 @@ export async function addCustomerBookingToStore(payload: PendingBookingPayload):
     checkOut,
     nights,
     guests: payload.guests ?? 1,
-    status: "confirmed",
+    status: payload.status ?? "confirmed",
     amount: payload.total ?? room.price * nights,
-    paymentStatus: "pending",
+    paymentStatus: payload.paymentStatus ?? "pending",
     createdAt: new Date().toISOString().slice(0, 10),
   };
 
@@ -268,4 +272,6 @@ export async function addCustomerBookingToStore(payload: PendingBookingPayload):
   } catch {
     // ignore
   }
+
+  return booking;
 }

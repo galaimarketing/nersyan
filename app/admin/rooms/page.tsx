@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { useAdminData } from "@/components/admin-data-provider";
 import type { AdminRoom, AdminData } from "@/lib/admin-store";
+import { isRoomBooked } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
 import { CurrencySymbol } from "@/components/currency-symbol";
 
@@ -282,8 +283,15 @@ export default function RoomsPage() {
 
   const editRoom = editRoomId ? data.rooms.find((r) => r.id === editRoomId) : null;
   const rooms = data.rooms;
-  /** Use the stored status from admin (no automatic override from bookings). */
-  const getEffectiveStatus = (room: AdminRoom) => room.status;
+  /**
+   * If admin stored the room as "occupied" but there is no active booking anymore,
+   * show it as "available" automatically.
+   * If admin stored it as "available", we keep it available even if bookings exist.
+   */
+  const getEffectiveStatus = (room: AdminRoom) => {
+    if (room.status === "occupied" && !isRoomBooked(data, room)) return "available";
+    return room.status;
+  };
   const filteredRooms = rooms.filter((room) => {
     const matchesSearch =
       room.number.toLowerCase().includes(search.toLowerCase()) ||

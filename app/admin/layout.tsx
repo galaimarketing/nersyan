@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -16,6 +16,8 @@ import {
   Bell,
   Languages,
   Laptop,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -23,6 +25,14 @@ import { Button } from "@/components/ui/button";
 import { AdminDataProvider, useAdminData } from "@/components/admin-data-provider";
 import { I18nProvider, useI18n, AdminLangSync } from "@/lib/i18n";
 import { Sidebar, SidebarBody, SidebarLink, useSidebar } from "@/components/ui/sidebar";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 const sidebarItems = [
   { icon: LayoutDashboard, labelKey: "admin.panel", href: "/admin" },
@@ -42,7 +52,8 @@ const logoIcon = (
 
 function AdminSidebarLogo() {
   const { open } = useSidebar();
-  const { t, dir } = useI18n();
+  const { dir, language } = useI18n();
+  const brandText = language === "ar" ? "نرسيان طيبة" : "Nersyan Taiba";
   return (
     <div
       className={cn(
@@ -57,17 +68,34 @@ function AdminSidebarLogo() {
           dir === "rtl" ? "flex-row-reverse justify-end" : "justify-start"
         )}
       >
-        {logoIcon}
-        {/* Show brand text only when open; icon + arrow still visible when closed */}
-        {open && (
-          <motion.span
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="font-medium text-foreground dark:text-white whitespace-pre"
-          >
-            Nersyan Taiba
-          </motion.span>
+        {dir === "rtl" ? (
+          <>
+            {open && (
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="font-medium text-foreground dark:text-white whitespace-pre"
+              >
+                {brandText}
+              </motion.span>
+            )}
+            {logoIcon}
+          </>
+        ) : (
+          <>
+            {logoIcon}
+            {open && (
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="font-medium text-foreground dark:text-white whitespace-pre"
+              >
+                {brandText}
+              </motion.span>
+            )}
+          </>
         )}
+        {/* Show brand text only when open; icon + arrow still visible when closed */}
       </Link>
     </div>
   );
@@ -125,6 +153,43 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       </span>
     ),
   };
+
+  const breadcrumbs = (() => {
+    const parts = (pathname || "/admin").split("?")[0].split("/").filter(Boolean);
+    if (parts.length === 0) return [];
+    // Ensure starts with admin
+    if (parts[0] !== "admin") return [];
+    const mapLabel = (segment: string) => {
+      switch (segment) {
+        case "admin":
+          return t("admin.panel");
+        case "rooms":
+          return t("admin.rooms");
+        case "bookings":
+          return t("admin.bookingsTitle");
+        case "guests":
+          return t("admin.guestsTitle");
+        case "media":
+          return t("admin.mediaTitle");
+        case "blog":
+          return t("admin.blogTitle");
+        case "settings":
+          return t("admin.settings");
+        case "notifications":
+          return t("admin.notifications");
+        case "login":
+          return t("auth.signIn");
+        default:
+          return segment;
+      }
+    };
+    const crumbs = parts.map((seg, idx) => ({
+      href: "/" + parts.slice(0, idx + 1).join("/"),
+      label: mapLabel(seg),
+      isLast: idx === parts.length - 1,
+    }));
+    return crumbs;
+  })();
 
   return (
     <>
@@ -219,9 +284,34 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           aria-label="Main content"
         >
           {pathname !== "/admin/login" && (
-            <p className="mb-2 text-xs text-muted-foreground" aria-hidden>
-              {pathname}
-            </p>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <Breadcrumb>
+                <BreadcrumbList className="text-xs sm:text-sm">
+                  {breadcrumbs.map((c, idx) => (
+                    <React.Fragment key={c.href}>
+                      <BreadcrumbItem>
+                        {c.isLast ? (
+                          <BreadcrumbPage>{c.label}</BreadcrumbPage>
+                        ) : (
+                          <BreadcrumbLink asChild>
+                            <Link href={c.href}>{c.label}</Link>
+                          </BreadcrumbLink>
+                        )}
+                      </BreadcrumbItem>
+                      {idx < breadcrumbs.length - 1 && (
+                        <BreadcrumbSeparator>
+                          {dir === "rtl" ? (
+                            <ChevronLeft className="size-3.5" />
+                          ) : (
+                            <ChevronRight className="size-3.5" />
+                          )}
+                        </BreadcrumbSeparator>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </BreadcrumbList>
+              </Breadcrumb>
+            </div>
           )}
           {children}
         </main>

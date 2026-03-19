@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { useAdminData } from "@/components/admin-data-provider";
 import { useI18n } from "@/lib/i18n";
 import { CurrencySymbol } from "@/components/currency-symbol";
+import { isRoomBooked } from "@/lib/admin-store";
 
 const statKeys = [
   { key: "admin.totalBookings", iconKey: "bookings", icon: Calendar },
@@ -40,7 +41,11 @@ export default function AdminDashboard() {
         })()
     )
     .reduce((sum, b) => sum + b.amount, 0);
-  const occupiedRooms = data.rooms.filter((r) => r.status === "occupied").length;
+  const getEffectiveRoomStatus = (r: typeof data.rooms[number]) => {
+    if (r.status === "occupied" && !isRoomBooked(data, r)) return "available";
+    return r.status;
+  };
+  const occupiedRooms = data.rooms.filter((r) => getEffectiveRoomStatus(r) === "occupied").length;
   const occupancyTotal = Math.max(1, data.rooms.length);
   const occupancyRate =
     `${Math.round((occupiedRooms / occupancyTotal) * 100)}%`;
@@ -159,7 +164,7 @@ export default function AdminDashboard() {
             ) : (
               <div className="space-y-4">
                 {roomStatus.map((r) => {
-                  const displayStatus = r.status;
+                  const displayStatus = getEffectiveRoomStatus(r);
                   const statusLabel =
                     displayStatus === "occupied"
                       ? t("admin.booked")

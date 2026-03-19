@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Search, Calendar, Check, Filter, Inbox, BedDouble, User, Mail, Phone } from "lucide-react";
+import { Search, Calendar, Check, Filter, Inbox, BedDouble, User, Mail, Phone, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useAdminData } from "@/components/admin-data-provider";
 import type { BookingStatus, PaymentStatus } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
@@ -55,8 +65,9 @@ export default function BookingsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const guestId = searchParams.get("guest") ?? undefined;
-  const { data, getGuestById, addBooking, addGuest, updateBooking } = useAdminData();
+  const { data, getGuestById, addBooking, addGuest, updateBooking, deleteBooking } = useAdminData();
   const [search, setSearch] = useState("");
+  const [deleteConfirmBookingId, setDeleteConfirmBookingId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [newBookingOpen, setNewBookingOpen] = useState(false);
   const [guestMode, setGuestMode] = useState<"existing" | "new">("new");
@@ -536,12 +547,13 @@ export default function BookingsPageContent() {
                   {t("admin.payment")}
                 </TableHead>
                 <TableHead className="w-[10%] text-end">{t("admin.amount")}</TableHead>
+                <TableHead className="w-[8%] text-center">{t("admin.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredBookings.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-48">
+                  <TableCell colSpan={8} className="h-48">
                     <div className="flex flex-col items-center justify-center py-8 text-center">
                       <Inbox className="h-12 w-12 text-muted-foreground/50" />
                       <p className="mt-2 text-sm font-medium text-foreground">{t("admin.noBookingsYet")}</p>
@@ -608,6 +620,18 @@ export default function BookingsPageContent() {
                       <TableCell className="w-[10%] text-end font-semibold">
                         {booking.amount.toLocaleString()} <CurrencySymbol />
                       </TableCell>
+                      <TableCell className="w-[8%] text-center">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => setDeleteConfirmBookingId(booking.id)}
+                          aria-label={t("admin.delete")}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))
               )}
@@ -615,6 +639,29 @@ export default function BookingsPageContent() {
           </Table>
         </div>
       </Card>
+
+      <AlertDialog open={deleteConfirmBookingId !== null} onOpenChange={(open) => !open && setDeleteConfirmBookingId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("admin.delete")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("admin.deleteBookingConfirm")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("admin.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deleteConfirmBookingId) {
+                  deleteBooking(deleteConfirmBookingId);
+                  setDeleteConfirmBookingId(null);
+                }
+              }}
+            >
+              {t("admin.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

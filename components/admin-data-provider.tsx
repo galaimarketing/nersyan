@@ -12,6 +12,7 @@ import {
   defaultAdminData,
   generateId,
   normalizeMedia,
+  isRoomBooked,
 } from "@/lib/admin-store";
 
 type AdminDataContextValue = {
@@ -21,9 +22,11 @@ type AdminDataContextValue = {
   // Bookings
   addBooking: (b: Omit<AdminBooking, "id" | "createdAt">) => AdminBooking;
   updateBooking: (id: string, updates: Partial<AdminBooking>) => void;
+  deleteBooking: (id: string) => void;
   // Guests
   addGuest: (g: Omit<AdminGuest, "id">) => AdminGuest;
   updateGuest: (id: string, updates: Partial<AdminGuest>) => void;
+  deleteGuest: (id: string) => void;
   getGuestById: (id: string) => AdminGuest | undefined;
   // Rooms
   addRoom: (r: Omit<AdminRoom, "id">) => AdminRoom;
@@ -40,6 +43,7 @@ type AdminDataContextValue = {
   // Notifications
   notifications: AdminNotification[];
   markNotificationRead: (id: string) => void;
+  deleteNotification: (id: string) => void;
 };
 
 const AdminDataContext = createContext<AdminDataContextValue | null>(null);
@@ -68,6 +72,17 @@ function mergeAdminData(apiData: AdminData, localData: AdminData): AdminData {
 export function AdminDataProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<AdminData>(defaultAdminData);
   const [initialized, setInitialized] = useState(false);
+  const persistToApi = useCallback(async (nextData: AdminData) => {
+    try {
+      await fetch(ADMIN_DATA_API, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(nextData),
+      });
+    } catch {
+      // ignore
+    }
+  }, []);
 
   // Load: always from API (DB). One-time migrate legacy localStorage if present.
   useEffect(() => {
@@ -198,6 +213,22 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  const deleteBooking = useCallback((id: string) => {
+    setData((d) => {
+      const nextBookings = d.bookings.filter((b) => b.id !== id);
+      const snapshot: AdminData = { ...d, bookings: nextBookings };
+      const nextRooms = d.rooms.map((r) => {
+        if (r.status !== "occupied") return r;
+        // If room no longer has any active booking, mark it available again
+        return isRoomBooked(snapshot, r) ? r : { ...r, status: "available" as const };
+      });
+      const next = { ...d, bookings: nextBookings, rooms: nextRooms };
+      // Persist immediately so other admin pages show updated room availability.
+      persistToApi(next);
+      return next;
+    });
+  }, [persistToApi]);
+
   const addGuest = useCallback((g: Omit<AdminGuest, "id">) => {
     const id = generateId().slice(0, 8);
     const guest: AdminGuest = { ...g, id };
@@ -211,6 +242,21 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
       guests: d.guests.map((g) => (g.id === id ? { ...g, ...updates } : g)),
     }));
   }, []);
+
+  const deleteGuest = useCallback((id: string) => {
+    setData((d) => {
+      const nextGuests = d.guests.filter((g) => g.id !== id);
+      const nextBookings = d.bookings.filter((b) => b.guestId !== id);
+      const snapshot: AdminData = { ...d, guests: nextGuests, bookings: nextBookings };
+      const nextRooms = d.rooms.map((r) => {
+        if (r.status !== "occupied") return r;
+        return isRoomBooked(snapshot, r) ? r : { ...r, status: "available" as const };
+      });
+      const next = { ...d, guests: nextGuests, bookings: nextBookings, rooms: nextRooms };
+      persistToApi(next);
+      return next;
+    });
+  }, [persistToApi]);
 
   const getGuestById = useCallback(
     (id: string) => data.guests.find((g) => g.id === id),
@@ -277,14 +323,23 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  const deleteNotification = useCallback((id: string) => {
+    setData((d) => ({
+      ...d,
+      notifications: (d.notifications ?? []).filter((n) => n.id !== id),
+    }));
+  }, []);
+
   const value: AdminDataContextValue = {
     data,
     setData,
     refetchFromApi,
     addBooking,
     updateBooking,
+    deleteBooking,
     addGuest,
     updateGuest,
+    deleteGuest,
     getGuestById,
     addRoom,
     updateRoom,
@@ -297,6 +352,7 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
     deleteMedia,
     notifications: data.notifications ?? [],
     markNotificationRead,
+    deleteNotification,
   };
 
   return (

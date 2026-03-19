@@ -82,10 +82,20 @@ export function BookingDialog({ room, open, onOpenChange }: BookingDialogProps) 
         language,
       };
       window.localStorage.setItem("nersian-pending-booking", JSON.stringify(payload));
-    }
 
-    onOpenChange(false);
-    router.push("/payment");
+      const userRaw = window.localStorage.getItem("nersian-user");
+      const nextPath = "/payment";
+      const nextParam = encodeURIComponent(nextPath);
+
+      onOpenChange(false);
+
+      if (!userRaw) {
+        // Force sign up/login before payment so user can see bookings later
+        router.push(`/auth/signup?next=${nextParam}`);
+      } else {
+        router.push(nextPath);
+      }
+    }
   };
 
   return (

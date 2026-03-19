@@ -80,12 +80,14 @@ export function Header() {
                 <Menu
                   className={cn(
                     "m-auto size-6 duration-200",
+                    scrolled ? "text-foreground" : "text-white",
                     menuState && "rotate-180 scale-0 opacity-0"
                   )}
                 />
                 <X
                   className={cn(
                     "absolute inset-0 m-auto size-6 -rotate-180 scale-0 opacity-0 duration-200",
+                    scrolled ? "text-foreground" : "text-white",
                     menuState && "rotate-0 scale-100 opacity-100"
                   )}
                 />

@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, ArrowLeft, Inbox } from "lucide-react";
+import { Bell, ArrowLeft, Inbox, Eye, Trash2, MailOpen } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAdminData } from "@/components/admin-data-provider";
 import { useI18n } from "@/lib/i18n";
 
 export default function AdminNotificationsPage() {
-  const { notifications, markNotificationRead } = useAdminData();
+  const { notifications, markNotificationRead, deleteNotification } = useAdminData();
   const { t, language, dir } = useI18n();
 
   const formatTime = (timeStr: string) => {
@@ -58,21 +58,40 @@ export default function AdminNotificationsPage() {
                     <p className="text-sm text-muted-foreground">{n.message}</p>
                     <p className="mt-1 text-xs text-muted-foreground">{formatTime(n.time)}</p>
                   </div>
-                  <div className="flex shrink-0 gap-2">
+                  <div className="flex shrink-0 items-center gap-1">
+                    {n.link && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        asChild
+                        aria-label={t("admin.view")}
+                      >
+                        <Link href={n.link}>
+                          <Eye className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                    )}
                     {!n.read && (
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon"
+                        className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
                         onClick={() => markNotificationRead(n.id)}
+                        aria-label={t("admin.markRead")}
                       >
-                        {t("admin.markRead")}
+                        <MailOpen className="h-4 w-4" />
                       </Button>
                     )}
-                    {n.link && (
-                      <Button variant="link" size="sm" asChild>
-                        <Link href={n.link}>{t("admin.view")}</Link>
-                      </Button>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => deleteNotification(n.id)}
+                      aria-label={t("admin.delete")}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </li>
               ))}

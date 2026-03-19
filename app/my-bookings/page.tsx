@@ -7,15 +7,24 @@ import { CurrencySymbol } from "@/components/currency-symbol";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { AdminBooking } from "@/lib/admin-store";
 
 function MyBookingsContent() {
   const { t, language, dir } = useI18n();
+  const router = useRouter();
   const [bookings, setBookings] = useState<AdminBooking[] | null>(null);
   const [guestName, setGuestName] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
+      if (typeof window !== "undefined") {
+        const userRaw = window.localStorage.getItem("nersian-user");
+        if (!userRaw) {
+          router.replace("/auth/signin?next=/my-bookings");
+          return;
+        }
+      }
       try {
         const res = await fetch("/api/admin/data", { cache: "no-store" });
         if (!res.ok) {
@@ -24,19 +33,12 @@ function MyBookingsContent() {
         }
         const data = (await res.json()) as { bookings?: AdminBooking[]; guests?: { id: string; name: string }[] };
 
-        // Simple "current guest" resolution from localStorage (booking id) if available
-        let filtered = data.bookings ?? [];
-        if (typeof window !== "undefined") {
-          const lastBookingId = window.localStorage.getItem("nersian-last-booking-id");
-          if (lastBookingId) {
-            const match = filtered.find((b) => b.id === lastBookingId);
-            if (match) {
-              filtered = filtered.filter((b) => b.guestId === match.guestId);
-              const guest = (data.guests ?? []).find((g) => g.id === match.guestId);
-              if (guest?.name) setGuestName(guest.name);
-            }
-          }
-        }
+        const user = JSON.parse(window.localStorage.getItem("nersian-user") ?? "{}") as { email?: string };
+        const email = user.email;
+
+        // Filter by signed-in user email (stable across refresh)
+        let filtered = (data.bookings ?? []).filter((b) => (email ? b.email === email : true));
+        if (filtered.length > 0) setGuestName(filtered[0].guestName);
 
         setBookings(filtered);
       } catch {

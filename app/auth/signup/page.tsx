@@ -3,20 +3,20 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
-import { Mail, Lock, User, Phone, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { I18nProvider, useI18n, LanguageToggle } from "@/lib/i18n";
+import { getSupabaseBrowser, hasSupabaseAuth } from "@/lib/supabase-browser";
 
 function SignUpForm() {
   const { t, language, dir } = useI18n();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -24,12 +24,13 @@ function SignUpForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!fullName || !email || !phone || !password || !confirmPassword) {
+    if (!fullName || !email || !password || !confirmPassword) {
       setError(
         language === "ar"
           ? "يرجى تعبئة جميع الحقول."
@@ -62,7 +63,7 @@ function SignUpForm() {
       if (typeof window !== "undefined") {
         window.localStorage.setItem(
           "nersian-user",
-          JSON.stringify({ fullName, email, phone })
+          JSON.stringify({ fullName, email })
         );
       }
 
@@ -74,7 +75,8 @@ function SignUpForm() {
         );
       }
 
-      router.push("/");
+      const next = searchParams.get("next") || "/";
+      router.push(next);
     } finally {
       setLoading(false);
     }
@@ -164,23 +166,6 @@ function SignUpForm() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="border-0 shadow-none focus-visible:ring-0"
-                    />
-                  </div>
-                </div>
-
-                {/* Phone */}
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="phone">{t("auth.phone")}</Label>
-                  <div className="flex items-center gap-2 rounded-lg border px-3 h-12 focus-within:ring-2 focus-within:ring-ring">
-                    <Phone className="h-5 w-5 text-muted-foreground" />
-                    <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="+966 5XX XXX XXXX"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="border-0 shadow-none focus-visible:ring-0"
-                      dir="ltr"
                     />
                   </div>
                 </div>
@@ -299,13 +284,36 @@ function SignUpForm() {
                   type="button"
                   variant="outline"
                   className="w-full h-12 rounded-lg flex items-center justify-center gap-3"
-                  onClick={() =>
-                    window.alert(
-                      language === "ar"
-                        ? "التسجيل عبر Google قريباً."
-                        : "Google sign-up coming soon."
-                    )
-                  }
+                  onClick={async () => {
+                    const next = searchParams.get("next") || "/";
+                    if (hasSupabaseAuth() && typeof window !== "undefined") {
+                      const supabase = getSupabaseBrowser();
+                      if (supabase) {
+                        const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+                        await supabase.auth.signInWithOAuth({
+                          provider: "google",
+                          options: { redirectTo },
+                        });
+                        return;
+                      }
+                    }
+                    if (typeof window !== "undefined") {
+                      window.localStorage.setItem(
+                        "nersian-user",
+                        JSON.stringify({
+                          fullName: language === "ar" ? "مستخدم Google" : "Google User",
+                          email: "google-user@example.com",
+                          provider: "google",
+                        })
+                      );
+                      window.alert(
+                        language === "ar"
+                          ? "تم إنشاء الحساب عبر Google (تجريبيًا). أضف مفاتيح Supabase وفعّل Google للمسار الكامل."
+                          : "Account created with Google (demo). Add Supabase keys and enable Google for full OAuth."
+                      );
+                      router.push(next);
+                    }
+                  }}
                 >
                   <Image
                     src="https://www.svgrepo.com/show/355037/google.svg"
@@ -320,13 +328,36 @@ function SignUpForm() {
                   type="button"
                   variant="outline"
                   className="w-full h-12 rounded-lg flex items-center justify-center gap-3"
-                  onClick={() =>
-                    window.alert(
-                      language === "ar"
-                        ? "التسجيل عبر Apple قريباً."
-                        : "Apple sign-up coming soon."
-                    )
-                  }
+                  onClick={async () => {
+                    const next = searchParams.get("next") || "/";
+                    if (hasSupabaseAuth() && typeof window !== "undefined") {
+                      const supabase = getSupabaseBrowser();
+                      if (supabase) {
+                        const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+                        await supabase.auth.signInWithOAuth({
+                          provider: "apple",
+                          options: { redirectTo },
+                        });
+                        return;
+                      }
+                    }
+                    if (typeof window !== "undefined") {
+                      window.localStorage.setItem(
+                        "nersian-user",
+                        JSON.stringify({
+                          fullName: language === "ar" ? "مستخدم Apple" : "Apple User",
+                          email: "apple-user@example.com",
+                          provider: "apple",
+                        })
+                      );
+                      window.alert(
+                        language === "ar"
+                          ? "تم إنشاء الحساب عبر Apple (تجريبيًا). أضف مفاتيح Supabase وفعّل Apple للمسار الكامل."
+                          : "Account created with Apple (demo). Add Supabase keys and enable Apple for full OAuth."
+                      );
+                      router.push(next);
+                    }
+                  }}
                 >
                   <Image
                     src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg"

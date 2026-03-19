@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Search, Mail, Phone, ArrowLeft, Users } from "lucide-react";
+import { Search, Mail, Phone, ArrowLeft, Users, Trash2, Eye } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,13 +14,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useAdminData } from "@/components/admin-data-provider";
 import { useI18n } from "@/lib/i18n";
 
 export default function AdminGuestsPage() {
   const { t } = useI18n();
-  const { data } = useAdminData();
+  const { data, deleteGuest } = useAdminData();
   const [search, setSearch] = useState("");
+  const [deleteConfirmGuestId, setDeleteConfirmGuestId] = useState<string | null>(null);
 
   const guests = data.guests;
   const bookingCountByGuest = (guestId: string) =>
@@ -90,9 +101,26 @@ export default function AdminGuestsPage() {
                     </TableCell>
                     <TableCell className="w-[12%] text-center">{bookingCountByGuest(guest.id)}</TableCell>
                     <TableCell className="w-[18%] text-end">
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/admin/bookings?guest=${guest.id}`}>{t("admin.view")}</Link>
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="icon" asChild>
+                          <Link
+                            href={`/admin/bookings?guest=${guest.id}`}
+                            aria-label={t("admin.view")}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => setDeleteConfirmGuestId(guest.id)}
+                          aria-label={t("admin.delete")}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -101,6 +129,29 @@ export default function AdminGuestsPage() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={deleteConfirmGuestId !== null} onOpenChange={(open) => !open && setDeleteConfirmGuestId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("admin.delete")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("admin.deleteGuestConfirm")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("admin.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deleteConfirmGuestId) {
+                  deleteGuest(deleteConfirmGuestId);
+                  setDeleteConfirmGuestId(null);
+                }
+              }}
+            >
+              {t("admin.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Button variant="outline" asChild>
         <Link href="/admin" className="inline-flex items-center gap-2">

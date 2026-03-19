@@ -90,7 +90,7 @@ export const DesktopSidebar = ({
     <motion.div
       className={cn(
         "relative sticky top-0 h-screen py-4 hidden md:flex md:flex-col bg-stone-100/90 dark:bg-neutral-800 flex-shrink-0 border-e border-stone-200/80 dark:border-neutral-700 overflow-visible",
-        "px-3 min-w-[72px] self-start",
+        "min-w-[72px] self-start",
         className
       )}
       animate={{
@@ -103,11 +103,11 @@ export const DesktopSidebar = ({
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          "absolute top-1/2 -translate-y-1/2 z-30 inline-flex h-8 w-8 items-center justify-center rounded-full border shadow-md",
-          "border-stone-200 bg-stone-50 text-neutral-700 hover:bg-stone-100",
-          "dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:hover:bg-neutral-800",
-          // LTR: stick to right edge of sidebar and overflow into content
-          "right-0 translate-x-1/2"
+          "absolute top-6 z-30 inline-flex h-10 w-6 items-center justify-center border shadow-none rounded-l-none rounded-r-full",
+          "border-stone-200 bg-stone-100/90 text-neutral-700 hover:bg-stone-100/90",
+          "dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-50 dark:hover:bg-neutral-800",
+          // LTR: stick to sidebar outer edge
+          "right-0 translate-x-[calc(100%-1px)]"
         )}
         aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
       >
@@ -117,7 +117,7 @@ export const DesktopSidebar = ({
           <ChevronRight className="h-4 w-4" />
         )}
       </button>
-      {children}
+      <div className="h-full px-3">{children}</div>
     </motion.div>
   );
 };

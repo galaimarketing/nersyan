@@ -293,6 +293,8 @@ const translations: Translations = {
   "admin.updateRoomDetails": { ar: "تحديث بيانات الغرفة", en: "Update room details" },
   "admin.edit": { ar: "تعديل", en: "Edit" },
   "admin.delete": { ar: "حذف", en: "Delete" },
+  "admin.deleteBookingConfirm": { ar: "هل أنت متأكد من حذف هذا الحجز؟ لا يمكن التراجع.", en: "Are you sure you want to delete this booking? This cannot be undone." },
+  "admin.deleteGuestConfirm": { ar: "هل أنت متأكد من حذف هذا الضيف؟ سيتم حذف جميع حجوزاته أيضاً.", en: "Are you sure you want to delete this guest? All their bookings will also be removed." },
   "admin.addFirstRoom": { ar: "أضف أول غرفة للبدء", en: "Add your first room to get started" },
   "admin.capacityGuests": { ar: "ضيوف", en: "guests" },
   "admin.capacityLabel": { ar: "السعة", en: "Capacity" },

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { I18nProvider, useI18n, LanguageToggle } from "@/lib/i18n";
+import { getSupabaseBrowser, hasSupabaseAuth } from "@/lib/supabase-browser";
 
 function SignInForm() {
   const { t, language, dir } = useI18n();
@@ -21,6 +22,7 @@ function SignInForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +55,8 @@ function SignInForm() {
         );
       }
 
-      router.push("/");
+      const next = searchParams.get("next") || "/";
+      router.push(next);
     } finally {
       setLoading(false);
     }
@@ -185,13 +188,32 @@ function SignInForm() {
                   type="button"
                   variant="outline"
                   className="w-full h-12 rounded-lg flex items-center justify-center gap-3"
-                  onClick={() =>
-                    window.alert(
-                      language === "ar"
-                        ? "تسجيل الدخول عبر Google قريباً."
-                        : "Google sign-in coming soon."
-                    )
-                  }
+                  onClick={async () => {
+                    const next = searchParams.get("next") || "/";
+                    if (hasSupabaseAuth() && typeof window !== "undefined") {
+                      const supabase = getSupabaseBrowser();
+                      if (supabase) {
+                        const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+                        await supabase.auth.signInWithOAuth({
+                          provider: "google",
+                          options: { redirectTo },
+                        });
+                        return;
+                      }
+                    }
+                    if (typeof window !== "undefined") {
+                      window.localStorage.setItem(
+                        "nersian-user",
+                        JSON.stringify({ email: "google-user@example.com", provider: "google" })
+                      );
+                      window.alert(
+                        language === "ar"
+                          ? "تم تسجيل الدخول عبر Google (تجريبيًا). أضف NEXT_PUBLIC_SUPABASE_URL و NEXT_PUBLIC_SUPABASE_ANON_KEY وفعّل Google في Supabase للمسار الكامل."
+                          : "Signed in with Google (demo). Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY and enable Google in Supabase for full OAuth."
+                      );
+                      router.push(next);
+                    }
+                  }}
                 >
                   <Image
                     src="https://www.svgrepo.com/show/355037/google.svg"
@@ -206,13 +228,32 @@ function SignInForm() {
                   type="button"
                   variant="outline"
                   className="w-full h-12 rounded-lg flex items-center justify-center gap-3"
-                  onClick={() =>
-                    window.alert(
-                      language === "ar"
-                        ? "تسجيل الدخول عبر Apple قريباً."
-                        : "Apple sign-in coming soon."
-                    )
-                  }
+                  onClick={async () => {
+                    const next = searchParams.get("next") || "/";
+                    if (hasSupabaseAuth() && typeof window !== "undefined") {
+                      const supabase = getSupabaseBrowser();
+                      if (supabase) {
+                        const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+                        await supabase.auth.signInWithOAuth({
+                          provider: "apple",
+                          options: { redirectTo },
+                        });
+                        return;
+                      }
+                    }
+                    if (typeof window !== "undefined") {
+                      window.localStorage.setItem(
+                        "nersian-user",
+                        JSON.stringify({ email: "apple-user@example.com", provider: "apple" })
+                      );
+                      window.alert(
+                        language === "ar"
+                          ? "تم تسجيل الدخول عبر Apple (تجريبيًا). أضف مفاتيح Supabase وفعّل Apple للمسار الكامل."
+                          : "Signed in with Apple (demo). Add Supabase keys and enable Apple for full OAuth."
+                      );
+                      router.push(next);
+                    }
+                  }}
                 >
                   <Image
                     src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg"
