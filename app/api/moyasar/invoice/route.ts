@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { addCustomerBookingToStore } from "@/lib/admin-store";
+import { getAdminData, setAdminData } from "@/lib/db";
+import { mergeCustomerBookingIntoAdminData } from "@/lib/admin-store";
 
 type InvoiceBody = {
   payload: {
@@ -46,15 +47,34 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "Moyasar secret key missing" }, { status: 500 });
   }
 
-  const booking = await addCustomerBookingToStore({
+  // Must use DB directly — addCustomerBookingToStore() uses fetch("/api/...") which fails in Route Handlers (no request base URL).
+  const data = await getAdminData();
+  if (!data) {
+    return NextResponse.json(
+      { ok: false, error: "Database unavailable. Check DATABASE_URL / POSTGRES_URL on the server." },
+      { status: 503 }
+    );
+  }
+
+  const merged = mergeCustomerBookingIntoAdminData(data, {
     ...payload,
     status: "pending",
     paymentStatus: "pending",
   });
 
-  if (!booking?.id) {
-    return NextResponse.json({ ok: false, error: "Failed to create pending booking" }, { status: 400 });
+  if (!merged) {
+    return NextResponse.json(
+      { ok: false, error: "Room not found for this booking. Try picking the room again from /rooms." },
+      { status: 400 }
+    );
   }
+
+  const saved = await setAdminData(merged.nextData);
+  if (!saved) {
+    return NextResponse.json({ ok: false, error: "Failed to save booking" }, { status: 500 });
+  }
+
+  const booking = merged.booking;
 
   const url = new URL(req.url);
   const origin = url.origin;

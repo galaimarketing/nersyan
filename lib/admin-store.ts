@@ -195,21 +195,15 @@ export interface PendingBookingPayload {
   paymentStatus?: PaymentStatus;
 }
 
-/** Persist a customer booking into admin data (guest + booking). Call after payment/confirm. */
-export async function addCustomerBookingToStore(
+/**
+ * Pure merge: append guest + booking and mark room occupied. Use from browser (after fetch) or server (getAdminData).
+ */
+export function mergeCustomerBookingIntoAdminData(
+  data: AdminData,
   payload: PendingBookingPayload
-): Promise<AdminBooking> {
-  if (typeof fetch === "undefined") return;
-  let data: AdminData | null = null;
-  try {
-    const res = await fetch("/api/admin/data", { cache: "no-store" });
-    data = res.ok ? ((await res.json()) as AdminData) : null;
-  } catch {
-    data = null;
-  }
-  if (!data) return;
+): { nextData: AdminData; booking: AdminBooking } | null {
   const room = data.rooms.find((r) => r.id === payload.roomId);
-  if (!room) return;
+  if (!room) return null;
 
   const from = payload.dateRange?.from;
   const to = payload.dateRange?.to;
@@ -263,15 +257,36 @@ export async function addCustomerBookingToStore(
       r.id === payload.roomId ? { ...r, status: "occupied" as const } : r
     ),
   };
+
+  return { nextData, booking };
+}
+
+/** Persist a customer booking into admin data (guest + booking). Call after payment/confirm. Browser only (uses relative /api). */
+export async function addCustomerBookingToStore(
+  payload: PendingBookingPayload
+): Promise<AdminBooking | undefined> {
+  if (typeof fetch === "undefined") return undefined;
+  let data: AdminData | null = null;
+  try {
+    const res = await fetch("/api/admin/data", { cache: "no-store" });
+    data = res.ok ? ((await res.json()) as AdminData) : null;
+  } catch {
+    data = null;
+  }
+  if (!data) return undefined;
+
+  const merged = mergeCustomerBookingIntoAdminData(data, payload);
+  if (!merged) return undefined;
+
   try {
     await fetch("/api/admin/data", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(nextData),
+      body: JSON.stringify(merged.nextData),
     });
   } catch {
     // ignore
   }
 
-  return booking;
+  return merged.booking;
 }
