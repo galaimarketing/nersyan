@@ -34,15 +34,18 @@ export async function GET(req: Request) {
   const moyasarJson = await moyasarRes.json().catch(() => null);
   const moyasarStatus = moyasarJson?.status ?? statusParam;
 
+  // Moyasar statuses (common ones): initiated, paid, failed, authorized, captured, refunded, voided, verified
   const paid =
     moyasarStatus === "paid" ||
+    moyasarStatus === "captured" ||
     moyasarStatus === "succeeded" ||
     moyasarStatus === "paid_out";
 
   const isFailure =
     moyasarStatus === "failed" ||
-    moyasarStatus === "cancelled" ||
+    moyasarStatus === "voided" ||
     moyasarStatus === "refunded" ||
+    moyasarStatus === "cancelled" ||
     moyasarStatus === "expired" ||
     moyasarStatus === "rejected";
 
