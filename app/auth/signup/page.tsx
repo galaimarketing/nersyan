@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -389,7 +389,15 @@ function SignUpForm() {
 export default function SignUpPage() {
   return (
     <I18nProvider>
-      <SignUpForm />
+      <Suspense
+        fallback={
+          <div className="flex min-h-screen items-center justify-center bg-background">
+            <p className="text-muted-foreground">جاري التحميل… / Loading…</p>
+          </div>
+        }
+      >
+        <SignUpForm />
+      </Suspense>
     </I18nProvider>
   );
 }

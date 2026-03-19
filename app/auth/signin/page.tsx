@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -307,7 +307,15 @@ function SignInForm() {
 export default function SignInPage() {
   return (
     <I18nProvider>
-      <SignInForm />
+      <Suspense
+        fallback={
+          <div className="flex min-h-screen items-center justify-center bg-background">
+            <p className="text-muted-foreground">جاري التحميل… / Loading…</p>
+          </div>
+        }
+      >
+        <SignInForm />
+      </Suspense>
     </I18nProvider>
   );
 }

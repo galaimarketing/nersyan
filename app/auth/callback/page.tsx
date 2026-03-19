@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 
 const NERSIAN_USER_KEY = "nersian-user";
 
-export default function AuthCallbackPage() {
+function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
@@ -22,7 +22,10 @@ export default function AuthCallbackPage() {
         return;
       }
 
-      const { data: { session }, error } = await supabase.auth.getSession();
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
 
       if (error) {
         setStatus("error");
@@ -59,8 +62,26 @@ export default function AuthCallbackPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <p className="text-muted-foreground">
-        {status === "loading" ? "جاري تسجيل الدخول… / Signing you in…" : status === "error" ? "حدث خطأ. إعادة التوجيه… / Something went wrong. Redirecting…" : "تم. إعادة التوجيه… / Done. Redirecting…"}
+        {status === "loading"
+          ? "جاري تسجيل الدخول… / Signing you in…"
+          : status === "error"
+            ? "حدث خطأ. إعادة التوجيه… / Something went wrong. Redirecting…"
+            : "تم. إعادة التوجيه… / Done. Redirecting…"}
       </p>
     </div>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <p className="text-muted-foreground">جاري التحميل… / Loading…</p>
+        </div>
+      }
+    >
+      <AuthCallbackContent />
+    </Suspense>
   );
 }
