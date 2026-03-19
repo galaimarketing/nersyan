@@ -118,9 +118,9 @@ export default function AdminDashboard() {
               </div>
             ) : (
               <div className="space-y-4">
-                {recentBookings.map((b) => (
+                {recentBookings.map((b, index) => (
                   <div
-                    key={b.id}
+                    key={`${b.id}-${b.guestId}-${b.checkIn}-${b.checkOut}-${b.createdAt}-${index}`}
                     className="flex items-center justify-between rounded-lg border p-3 text-sm"
                   >
                     <div>

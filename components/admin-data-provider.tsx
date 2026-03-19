@@ -11,6 +11,7 @@ import {
   AdminNotification,
   defaultAdminData,
   generateId,
+  generateBookingId,
   normalizeMedia,
   isRoomBooked,
 } from "@/lib/admin-store";
@@ -173,7 +174,7 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
 
   const addBooking = useCallback(
     (b: Omit<AdminBooking, "id" | "createdAt">) => {
-      const id = "B" + generateId().slice(0, 4).toUpperCase();
+      const id = generateBookingId();
       const created: AdminBooking = {
         ...b,
         id,

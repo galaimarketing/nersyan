@@ -465,12 +465,12 @@ export default function BookingsPageContent() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {bookingsByGuest.map((booking) => {
+                    {bookingsByGuest.map((booking, bi) => {
                       const roomRecord = data.rooms.find(
                         (r) => r.number.trim() === booking.roomNumber.trim()
                       );
                       return (
-                        <TableRow key={booking.id}>
+                        <TableRow key={`${booking.id}-${booking.guestId}-${booking.checkIn}-${booking.createdAt}-${bi}`}>
                           <TableCell className="align-top text-start">
                             <div className="min-w-0">
                               <p className="font-medium">{booking.room} · #{booking.roomNumber}</p>
@@ -562,8 +562,8 @@ export default function BookingsPageContent() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredBookings.map((booking) => (
-                    <TableRow key={booking.id}>
+                filteredBookings.map((booking, bi) => (
+                    <TableRow key={`${booking.id}-${booking.guestId}-${booking.checkIn}-${booking.createdAt}-${bi}`}>
                       <TableCell className="w-[10%] text-start font-medium">{booking.id}</TableCell>
                       <TableCell className="w-[18%] text-start">
                         <div>

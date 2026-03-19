@@ -166,6 +166,13 @@ export function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
 }
 
+/** Booking row id — longer than old B+4chars to avoid duplicate keys / collisions. */
+export function generateBookingId(): string {
+  const time = Date.now().toString(36).toUpperCase();
+  const rand = Math.random().toString(36).slice(2, 10).toUpperCase();
+  return `B${time}${rand}`;
+}
+
 const ACTIVE_BOOKING_STATUSES: BookingStatus[] = ["pending", "confirmed", "checked-in"];
 
 /** True if the room has an active booking that hasn't passed checkout date. */
@@ -233,7 +240,7 @@ export function mergeCustomerBookingIntoAdminData(
     phone: payload.guestPhone?.trim() || "",
   };
 
-  const bookingId = "B" + generateId().slice(0, 4).toUpperCase();
+  const bookingId = generateBookingId();
   const booking: AdminBooking = {
     id: bookingId,
     guestId,

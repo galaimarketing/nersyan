@@ -77,9 +77,9 @@ function MyBookingsContent() {
 
             {bookings && hasBookings && (
               <div className="space-y-4">
-                {bookings.map((b) => (
+                {bookings.map((b, i) => (
                   <div
-                    key={b.id}
+                    key={`${b.id}-${b.checkIn}-${b.checkOut}-${b.createdAt}-${i}`}
                     className="rounded-2xl border border-border bg-card/80 p-4 text-sm shadow-sm backdrop-blur-sm"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
