@@ -25,16 +25,25 @@ export function ContactForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    
-    setIsSubmitting(false);
-    setIsSuccess(true);
-    setFormData({ name: "", email: "", phone: "", message: "" });
-    
-    // Reset success message after 5 seconds
-    setTimeout(() => setIsSuccess(false), 5000);
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      if (!res.ok) throw new Error("Failed to send message");
+
+      setIsSuccess(true);
+      setFormData({ name: "", email: "", phone: "", message: "" });
+      // Reset success message after 5 seconds
+      setTimeout(() => setIsSuccess(false), 5000);
+    } catch {
+      if (typeof window !== "undefined") {
+        window.alert(language === "ar" ? "تعذر إرسال الرسالة، حاول مرة أخرى." : "Failed to send message, please try again.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

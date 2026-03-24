@@ -54,6 +54,9 @@ type AdminDataContextValue = {
   notifications: AdminNotification[];
   markNotificationRead: (id: string) => void;
   deleteNotification: (id: string) => void;
+  // Contact messages
+  deleteContactMessage: (id: string) => void;
+  markContactMessageRead: (id: string) => void;
 };
 
 const AdminDataContext = createContext<AdminDataContextValue | null>(null);
@@ -76,6 +79,7 @@ function mergeAdminData(apiData: AdminData, localData: AdminData): AdminData {
     blogPosts: mergeById(apiData.blogPosts ?? [], localData.blogPosts ?? []),
     media: normalizeMedia(mergeById(apiData.media ?? [], localData.media ?? [])),
     notifications: mergeById(apiData.notifications ?? [], localData.notifications ?? []),
+    contactMessages: mergeById(apiData.contactMessages ?? [], localData.contactMessages ?? []),
   };
 }
 
@@ -84,13 +88,14 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
   const persistToApi = useCallback(async (nextData: AdminData) => {
     const payload = reconciledSnapshot(nextData);
     try {
-      await fetch(ADMIN_DATA_API, {
+      const res = await fetch(ADMIN_DATA_API, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+      return res.ok;
     } catch {
-      // ignore
+      return false;
     }
   }, []);
 
@@ -177,7 +182,7 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
     (b: Omit<AdminBooking, "id" | "createdAt">) => {
       const id = generateBookingId();
       const createdAt = new Date().toISOString().slice(0, 10);
-      let createdOut: AdminBooking | undefined;
+      const created: AdminBooking = { ...b, id, createdAt };
       const notif: AdminNotification = {
         id: "N" + generateId().slice(0, 6).toUpperCase(),
         title: "New booking",
@@ -188,19 +193,16 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
         link: "/admin/bookings",
       };
       setData((d) => {
-        const matched = d.rooms.find(
-          (r) => normalizeRoomNumberKey(r.number) === normalizeRoomNumberKey(b.roomNumber)
+        const matchedRoom = d.rooms.find(
+          (r) => normalizeRoomNumberKey(r.number) === normalizeRoomNumberKey(created.roomNumber)
         );
-        const created: AdminBooking = {
-          ...b,
-          id,
-          createdAt,
-          roomId: b.roomId ?? matched?.id,
+        const normalizedCreated: AdminBooking = {
+          ...created,
+          roomId: created.roomId ?? matchedRoom?.id,
         };
-        createdOut = created;
         notif.message = `${created.guestName} - ${created.room} (${created.checkIn} → ${created.checkOut})`;
-        const nextBookings = [...d.bookings, created];
-        const key = normalizeRoomNumberKey(created.roomNumber);
+        const nextBookings = [...d.bookings, normalizedCreated];
+        const key = normalizeRoomNumberKey(normalizedCreated.roomNumber);
         const nextRooms = d.rooms.map((r) =>
           normalizeRoomNumberKey(r.number) === key ? { ...r, status: "occupied" as const } : r
         );
@@ -210,13 +212,28 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
           rooms: nextRooms,
           notifications: [notif, ...(d.notifications ?? [])],
         };
-        const reconciled = reconciledSnapshot(next);
-        void persistToApi(reconciled);
-        return reconciled;
+        return reconciledSnapshot(next);
       });
-      return createdOut!;
+      // Save manual reservations atomically on server against latest DB state.
+      void fetch("/api/admin/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(created),
+      })
+        .then((res) => (res.ok ? refetchFromApi() : Promise.reject(new Error("booking post failed"))))
+        .catch(async () => {
+          // Fallback for older servers without /api/admin/bookings route.
+          setData((d) => {
+            const reconciled = reconciledSnapshot(d);
+            void persistToApi(reconciled).then((ok) => {
+              if (ok) void refetchFromApi();
+            });
+            return d;
+          });
+        });
+      return created;
     },
-    [persistToApi]
+    [persistToApi, refetchFromApi]
   );
 
   const updateBooking = useCallback(
@@ -441,6 +458,32 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
     [persistToApi]
   );
 
+  const deleteContactMessage = useCallback((id: string) => {
+    setData((d) => {
+      const nextMessages = (d.contactMessages ?? []).filter((m) => m.id !== id);
+      const next: AdminData = {
+        ...d,
+        contactMessages: nextMessages,
+      };
+      const reconciled = reconciledSnapshot(next);
+      void persistToApi(reconciled);
+      return reconciled;
+    });
+  }, [persistToApi]);
+
+  const markContactMessageRead = useCallback((id: string) => {
+    setData((d) => {
+      const nextMessages = (d.contactMessages ?? []).map((m) => (m.id === id ? { ...m, read: true } : m));
+      const next: AdminData = {
+        ...d,
+        contactMessages: nextMessages,
+      };
+      const reconciled = reconciledSnapshot(next);
+      void persistToApi(reconciled);
+      return reconciled;
+    });
+  }, [persistToApi]);
+
   const value: AdminDataContextValue = {
     data,
     setData,
@@ -464,6 +507,8 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
     notifications: data.notifications ?? [],
     markNotificationRead,
     deleteNotification,
+    deleteContactMessage,
+    markContactMessageRead,
   };
 
   return (

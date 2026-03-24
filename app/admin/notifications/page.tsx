@@ -53,7 +53,11 @@ export default function AdminNotificationsPage() {
                 >
                   <div className="flex-1">
                     <p className="font-medium text-foreground">
-                      {n.type === "booking" ? t("admin.newBooking") : n.title}
+                      {n.type === "booking"
+                        ? t("admin.newBooking")
+                        : n.type === "contact"
+                          ? t("admin.newContactMessage")
+                          : n.title}
                     </p>
                     <p className="text-sm text-muted-foreground">{n.message}</p>
                     <p className="mt-1 text-xs text-muted-foreground">{formatTime(n.time)}</p>

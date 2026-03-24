@@ -89,7 +89,9 @@ export const DesktopSidebar = ({
   return (
     <motion.div
       className={cn(
-        "relative sticky top-0 h-screen py-4 hidden md:flex md:flex-col bg-stone-100/90 dark:bg-neutral-800 flex-shrink-0 border-e border-stone-200/80 dark:border-neutral-700 overflow-visible",
+        "relative sticky top-0 h-[100dvh] py-4 hidden md:flex md:flex-col flex-shrink-0 overflow-visible",
+        "bg-background shadow-[8px_0_24px_rgba(0,0,0,0.08)]",
+        "dark:bg-background dark:shadow-[8px_0_24px_rgba(0,0,0,0.38)]",
         "min-w-[72px] self-start",
         className
       )}
@@ -103,9 +105,9 @@ export const DesktopSidebar = ({
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          "absolute top-6 z-30 inline-flex h-10 w-6 items-center justify-center border shadow-none rounded-l-none rounded-r-full",
-          "border-stone-200 bg-stone-100/90 text-neutral-700 hover:bg-stone-100/90",
-          "dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-50 dark:hover:bg-neutral-800",
+          "absolute top-6 z-30 inline-flex h-10 w-6 items-center justify-center rounded-l-none rounded-r-full shadow-[3px_0_10px_rgba(0,0,0,0.10)] dark:shadow-[3px_0_10px_rgba(0,0,0,0.35)]",
+          "bg-background text-neutral-700 hover:bg-background",
+          "dark:bg-background dark:text-neutral-50 dark:hover:bg-background",
           // LTR: stick to sidebar outer edge
           "right-0 translate-x-[calc(100%-1px)]"
         )}

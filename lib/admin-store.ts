@@ -89,8 +89,18 @@ export interface AdminNotification {
   message: string;
   time: string;
   read: boolean;
-  type: "booking" | "system";
+  type: "booking" | "contact" | "system";
   link?: string;
+}
+
+export interface AdminContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  message: string;
+  createdAt: string;
+  read?: boolean;
 }
 
 export interface AdminData {
@@ -100,6 +110,7 @@ export interface AdminData {
   blogPosts: BlogPost[];
   media: MediaItem[];
   notifications: AdminNotification[];
+  contactMessages: AdminContactMessage[];
 }
 
 const STORAGE_KEY = "nersian-admin-data";
@@ -111,6 +122,7 @@ export const defaultAdminData: AdminData = {
   blogPosts: [],
   media: [],
   notifications: [],
+  contactMessages: [],
 };
 
 const BOOKING_STATUSES: BookingStatus[] = [
@@ -241,6 +253,24 @@ export function normalizeAdminData(input: unknown): AdminData {
   const rooms = Array.isArray(roomsRaw) ? roomsRaw.map((r, i) => normalizeAdminRoom(r, i)) : [];
   const blogRaw = o.blogPosts;
   const blogPosts = Array.isArray(blogRaw) ? blogRaw.map((p) => normalizeBlogPost(p)) : [];
+  const contactRaw = Array.isArray(o.contactMessages) ? o.contactMessages : [];
+  const contactMessages: AdminContactMessage[] = contactRaw
+    .map((c, i) => {
+      const x = c as Record<string, unknown>;
+      const email = String(x.email ?? "").trim();
+      const message = String(x.message ?? "").trim();
+      if (!email || !message) return null;
+      return {
+        id: String(x.id ?? "").trim() || `contact-${i}-${Math.random().toString(36).slice(2, 7)}`,
+        name: String(x.name ?? "").trim() || "Guest",
+        email,
+        phone: String(x.phone ?? "").trim(),
+        message,
+        createdAt: pickBookingDateSlice(x.createdAt ?? x.created_at) || new Date().toISOString().slice(0, 10),
+        read: Boolean(x.read ?? false),
+      };
+    })
+    .filter((v): v is AdminContactMessage => Boolean(v));
   return {
     bookings,
     guests,
@@ -248,6 +278,7 @@ export function normalizeAdminData(input: unknown): AdminData {
     blogPosts,
     media: normalizeMedia(o.media),
     notifications: Array.isArray(o.notifications) ? (o.notifications as AdminNotification[]) : [],
+    contactMessages,
   };
 }
 
@@ -310,16 +341,7 @@ export function loadAdminData(): AdminData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultAdminData;
-    const parsed = JSON.parse(raw) as AdminData;
-    const blogPosts = (parsed.blogPosts ?? []).map(normalizeBlogPost);
-    return {
-      bookings: parsed.bookings ?? [],
-      guests: parsed.guests ?? [],
-      rooms: parsed.rooms ?? [],
-      blogPosts,
-      media: normalizeMedia(parsed.media),
-      notifications: parsed.notifications ?? [],
-    };
+    return normalizeAdminData(JSON.parse(raw) as unknown);
   } catch {
     return defaultAdminData;
   }

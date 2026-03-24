@@ -143,14 +143,24 @@ export function Header() {
                 </ul>
               </div>
               <div className="flex w-full flex-col items-center gap-3 sm:flex-row md:w-fit">
-                <LanguageToggle
-                  className={
-                    showSolidNav
-                      ? undefined
-                      : "border-white/50 bg-white/15 text-white hover:bg-white/25 hover:text-white"
-                  }
-                />
-                <HeaderUserMenu showSolidNav={showSolidNav} />
+                {/**
+                 * Mobile menu panel is always light; force solid button styling while it is open.
+                 */}
+                {(() => {
+                  const useSolidButtonStyle = showSolidNav || menuState;
+                  return (
+                    <>
+                      <LanguageToggle
+                        className={
+                          useSolidButtonStyle
+                            ? undefined
+                            : "border-white/50 bg-white/15 text-white hover:bg-white/25 hover:text-white"
+                        }
+                      />
+                      <HeaderUserMenu showSolidNav={useSolidButtonStyle} />
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </motion.div>

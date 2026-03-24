@@ -1,5 +1,4 @@
-import { Suspense } from "react";
-import BookingsPageContent from "./BookingsPageContent";
+import BookingsPageClient from "./BookingsPageClient";
 
 export default async function BookingsPage({
   searchParams,
@@ -7,15 +6,5 @@ export default async function BookingsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   await searchParams;
-  return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-[40vh] items-center justify-center text-muted-foreground">
-          Loading…
-        </div>
-      }
-    >
-      <BookingsPageContent />
-    </Suspense>
-  );
+  return <BookingsPageClient />;
 }

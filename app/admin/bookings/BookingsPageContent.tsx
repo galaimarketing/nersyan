@@ -61,7 +61,7 @@ const paymentKeyMap: Record<PaymentStatus, string> = {
 };
 
 export default function BookingsPageContent() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const searchParams = useSearchParams();
   const router = useRouter();
   const guestId = searchParams.get("guest") ?? undefined;
@@ -75,6 +75,7 @@ export default function BookingsPageContent() {
   const [newGuestName, setNewGuestName] = useState("");
   const [newGuestEmail, setNewGuestEmail] = useState("");
   const [newGuestPhone, setNewGuestPhone] = useState("");
+  const [newRoomId, setNewRoomId] = useState("");
   const [newRoom, setNewRoom] = useState("");
   const [newRoomNumber, setNewRoomNumber] = useState("");
   const [newCheckIn, setNewCheckIn] = useState("");
@@ -93,9 +94,26 @@ export default function BookingsPageContent() {
   }, [searchParams, router, guestId]);
 
   const selectedGuest = guestMode === "existing" && newGuestId ? getGuestById(newGuestId) : null;
-  const canSubmit =
+  const selectedRoom = useMemo(
+    () => data.rooms.find((r) => r.id === newRoomId) ?? null,
+    [data.rooms, newRoomId]
+  );
+
+  useEffect(() => {
+    if (!selectedRoom) {
+      setNewRoom("");
+      setNewRoomNumber("");
+      return;
+    }
+    setNewRoom(selectedRoom.type);
+    setNewRoomNumber(selectedRoom.number);
+    setNewAmount(String(selectedRoom.price));
+  }, [selectedRoom]);
+
+  const canSubmitGuest =
     (guestMode === "existing" && selectedGuest) ||
     (guestMode === "new" && newGuestName.trim());
+  const canSubmit = Boolean(canSubmitGuest && selectedRoom && newCheckIn && newCheckOut);
 
   const guestFilter = guestId ? getGuestById(guestId) : null;
   const bookingsByGuest = useMemo(
@@ -124,7 +142,7 @@ export default function BookingsPageContent() {
 
   const handleCreateBooking = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newRoom.trim() || !newRoomNumber.trim() || !newCheckIn || !newCheckOut) return;
+    if (!selectedRoom || !newCheckIn || !newCheckOut) return;
     const amount = parseInt(newAmount, 10) || 0;
     let guest = selectedGuest;
     if (guestMode === "new") {
@@ -143,6 +161,7 @@ export default function BookingsPageContent() {
       phone: guest.phone,
       room: newRoom.trim(),
       roomNumber: newRoomNumber.trim(),
+      roomId: selectedRoom.id,
       checkIn: newCheckIn,
       checkOut: newCheckOut,
       nights: newNights,
@@ -156,6 +175,7 @@ export default function BookingsPageContent() {
     setNewGuestName("");
     setNewGuestEmail("");
     setNewGuestPhone("");
+    setNewRoomId("");
     setNewRoom("");
     setNewRoomNumber("");
     setNewCheckIn("");
@@ -243,14 +263,29 @@ export default function BookingsPageContent() {
                   </Select>
                 )}
               </div>
+              <div className="grid gap-2">
+                <Label>{t("admin.roomLabel")}</Label>
+                <Select value={newRoomId} onValueChange={setNewRoomId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={language === "ar" ? "اختر الغرفة" : "Select room"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {data.rooms.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>
+                        {t("admin.roomLabel")} {r.number} · {r.type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="room">{t("admin.roomType")}</Label>
                   <Input
                     id="room"
                     value={newRoom}
-                    onChange={(e) => setNewRoom(e.target.value)}
-                    placeholder="e.g. Deluxe"
+                    readOnly
+                    placeholder="-"
                     required
                   />
                 </div>
@@ -259,8 +294,8 @@ export default function BookingsPageContent() {
                   <Input
                     id="roomNumber"
                     value={newRoomNumber}
-                    onChange={(e) => setNewRoomNumber(e.target.value)}
-                    placeholder="e.g. 101"
+                    readOnly
+                    placeholder="-"
                     required
                   />
                 </div>
@@ -317,7 +352,7 @@ export default function BookingsPageContent() {
                   min={0}
                   value={newAmount}
                   onChange={(e) => setNewAmount(e.target.value)}
-                  placeholder="0"
+                  placeholder={selectedRoom ? String(selectedRoom.price) : "0"}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">

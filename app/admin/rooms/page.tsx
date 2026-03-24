@@ -298,11 +298,23 @@ export default function RoomsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "available":
-        return <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20">{t("admin.available")}</Badge>;
+        return (
+          <Badge className="border border-emerald-700/20 bg-emerald-600/95 font-semibold text-white shadow-sm hover:bg-emerald-600">
+            {t("admin.available")}
+          </Badge>
+        );
       case "occupied":
-        return <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20">{t("admin.booked")}</Badge>;
+        return (
+          <Badge className="border border-blue-800/20 bg-blue-600/95 font-semibold text-white shadow-sm hover:bg-blue-600">
+            {t("admin.booked")}
+          </Badge>
+        );
       case "maintenance":
-        return <Badge className="bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20">{t("admin.maintenance")}</Badge>;
+        return (
+          <Badge className="border border-amber-800/20 bg-amber-500/95 font-semibold text-white shadow-sm hover:bg-amber-500">
+            {t("admin.maintenance")}
+          </Badge>
+        );
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -572,7 +584,7 @@ export default function RoomsPage() {
                     <span className="text-sm">{t("admin.noRoomImage")}</span>
                   </div>
                 )}
-                <div className="absolute end-2 top-2" lang={language} dir={language === "ar" ? "rtl" : "ltr"}>
+                <div className="absolute end-2 top-2 z-10" lang={language} dir={language === "ar" ? "rtl" : "ltr"}>
                   {getStatusBadge(room.status)}
                 </div>
               </div>

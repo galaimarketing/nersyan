@@ -16,6 +16,7 @@ import {
   Bell,
   Languages,
   Laptop,
+  Mail,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -39,6 +40,7 @@ const sidebarItems = [
   { icon: BedDouble, labelKey: "admin.rooms", href: "/admin/rooms" },
   { icon: Calendar, labelKey: "admin.bookingsTitle", href: "/admin/bookings" },
   { icon: Users, labelKey: "admin.guestsTitle", href: "/admin/guests" },
+  { icon: Mail, labelKey: "admin.contactMessages", href: "/admin/contact" },
   { icon: FileText, labelKey: "admin.blogTitle", href: "/admin/blog" },
   { icon: ImageIcon, labelKey: "admin.mediaTitle", href: "/admin/media" },
   { icon: Settings, labelKey: "admin.settings", href: "/admin/settings" },
@@ -120,10 +122,40 @@ function AdminSidebarLogoIcon() {
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { t, language, setLanguage, dir } = useI18n();
-  const { notifications } = useAdminData();
+  const { notifications, data } = useAdminData();
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const unreadCount = (notifications ?? []).filter((n) => !n.read).length;
+  const unreadContactCount = (data.contactMessages ?? []).filter((m) => !m.read).length;
+  const unreadBookingCount = (notifications ?? []).filter((n) => !n.read && n.type === "booking").length;
+  const [hasNewBookingsDot, setHasNewBookingsDot] = useState(false);
+
+  // Dot source for Bookings icon: actual new booking rows (manual/admin-created included), not notifications.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const key = "admin-bookings-last-seen-id";
+    const newestBookingId = (data.bookings ?? []).reduce((max, b) => (!max || b.id > max ? b.id : max), "");
+
+    if (!newestBookingId) {
+      setHasNewBookingsDot(false);
+      return;
+    }
+
+    if (pathname === "/admin/bookings") {
+      window.localStorage.setItem(key, newestBookingId);
+      setHasNewBookingsDot(false);
+      return;
+    }
+
+    const seen = window.localStorage.getItem(key);
+    if (!seen) {
+      // Initialize baseline so existing old bookings don't show a permanent dot.
+      window.localStorage.setItem(key, newestBookingId);
+      setHasNewBookingsDot(false);
+      return;
+    }
+    setHasNewBookingsDot(seen !== newestBookingId);
+  }, [data.bookings, pathname]);
 
   useEffect(() => {
     if (pathname === "/admin/login") return;
@@ -133,10 +165,23 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   }, [pathname, router]);
 
   const iconClass = "text-neutral-700 dark:text-neutral-200";
+  const iconWithBadge = (Icon: React.ComponentType<{ className?: string }>, count: number) => (
+    <span className="relative inline-flex items-center justify-center">
+      <Icon className={iconClass} />
+      {count > 0 && (
+        <span className="absolute -top-0.5 -end-0.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-background dark:ring-neutral-900" />
+      )}
+    </span>
+  );
   const mainLinks = sidebarItems.map((item) => ({
     label: t(item.labelKey),
     href: item.href,
-    icon: <item.icon className={iconClass} />,
+    icon:
+      item.href === "/admin/bookings"
+        ? iconWithBadge(item.icon, hasNewBookingsDot || unreadBookingCount > 0 ? 1 : 0)
+        : item.href === "/admin/contact"
+          ? iconWithBadge(item.icon, unreadContactCount)
+          : <item.icon className={iconClass} />,
   }));
 
   const notificationsLink = {
@@ -173,6 +218,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           return t("admin.mediaTitle");
         case "blog":
           return t("admin.blogTitle");
+        case "contact":
+          return t("admin.contactMessages");
         case "settings":
           return t("admin.settings");
         case "notifications":
@@ -212,13 +259,13 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       {/* Desktop: sidebar + main content */}
       <div
         className={cn(
-          "hidden min-h-screen w-full bg-secondary/30 md:flex",
+          "hidden min-h-screen w-full bg-background md:flex",
           dir === "rtl" && "flex-row-reverse"
         )}
         dir={dir}
       >
         <Sidebar open={open} setOpen={setOpen}>
-          <SidebarBody className="flex h-full flex-col justify-between gap-6 border-e border-stone-200/80 dark:border-neutral-700">
+          <SidebarBody className="flex h-full flex-col justify-between gap-6 bg-background dark:bg-background">
             <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden min-h-0">
               <AdminSidebarLogo />
               <div className="mt-6 flex flex-col gap-1">
