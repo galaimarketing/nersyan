@@ -21,8 +21,8 @@ export function RoomsSection() {
     setIsBookingOpen(true);
   };
 
-  // Only show first 3 rooms on homepage
-  const displayRooms = rooms.slice(0, 3);
+  // Show up to 6 rooms total; mobile shows first 4, large screens show all 6.
+  const displayRooms = rooms.slice(0, 6);
 
   return (
     <section id="rooms" className="bg-background py-20" dir={dir}>
@@ -52,8 +52,10 @@ export function RoomsSection() {
 
         {/* Rooms Grid */}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {displayRooms.map((room) => (
-            <RoomCard key={room.id} room={room} onBook={handleBookRoom} />
+          {displayRooms.map((room, index) => (
+            <div key={room.id} className={index >= 4 ? "hidden lg:block" : ""}>
+              <RoomCard room={room} onBook={handleBookRoom} />
+            </div>
           ))}
         </div>
 

@@ -1,8 +1,18 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Users, Maximize, Car, Wifi, Wind } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Users,
+  Maximize,
+  Car,
+  Wifi,
+  Wind,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { usePublicRooms } from "@/lib/public-rooms";
 import type { Room } from "@/lib/rooms-data";
 import { Header } from "@/components/header";
@@ -15,10 +25,23 @@ import { CurrencySymbol } from "@/components/currency-symbol";
 
 function RoomDetailsContent({ room }: { room: Room }) {
   const { t, language, dir } = useI18n();
-  const [activeImage, setActiveImage] = useState(
-    room.images && room.images.length > 0 ? room.images[0] : room.image
-  );
+  const galleryImages = room.images && room.images.length > 0 ? room.images : [room.image];
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
+  const thumbnailRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [room.id]);
+
+  useEffect(() => {
+    const activeThumb = thumbnailRefs.current[activeImageIndex];
+    activeThumb?.scrollIntoView({
+      behavior: "smooth",
+      inline: "center",
+      block: "nearest",
+    });
+  }, [activeImageIndex]);
 
   const discountExpiresAtMs = room.discountExpiresAt ? new Date(room.discountExpiresAt).getTime() : null;
   const hasDiscount =
@@ -29,10 +52,21 @@ function RoomDetailsContent({ room }: { room: Room }) {
   const name = language === "ar" ? room.nameAr : room.nameEn;
   const description = language === "ar" ? room.descriptionAr : room.descriptionEn;
 
-  const galleryImages = room.images && room.images.length > 0 ? room.images : [room.image];
+  const activeImage = galleryImages[Math.min(activeImageIndex, galleryImages.length - 1)] ?? room.image;
+  const hasManyImages = galleryImages.length > 1;
+
+  const goPrevImage = () => {
+    if (!hasManyImages) return;
+    setActiveImageIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length);
+  };
+
+  const goNextImage = () => {
+    if (!hasManyImages) return;
+    setActiveImageIndex((prev) => (prev + 1) % galleryImages.length);
+  };
 
   return (
-    <div className="min-h-screen bg-background" dir={dir}>
+    <div className="min-h-screen overflow-x-hidden bg-background" dir={dir}>
       <Header />
 
       <main className="pb-20 pt-24 sm:pt-28 lg:pt-32">
@@ -59,23 +93,49 @@ function RoomDetailsContent({ room }: { room: Room }) {
 
           <div className="grid gap-6 lg:gap-10 lg:grid-cols-[1.7fr,1fr]">
             {/* Gallery */}
-            <section>
-              <div className="overflow-hidden rounded-2xl border border-border bg-card sm:rounded-3xl">
+            <section className="min-w-0">
+              <div className="relative overflow-hidden rounded-2xl border border-border bg-card sm:rounded-3xl">
                 <img
                   src={activeImage}
                   alt={name}
                   className="h-[240px] w-full object-cover sm:h-[320px] md:h-[440px]"
                 />
+                {hasManyImages && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={goPrevImage}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white backdrop-blur-sm transition hover:bg-black/60"
+                      aria-label={language === "ar" ? "الصورة السابقة" : "Previous image"}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={goNextImage}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white backdrop-blur-sm transition hover:bg-black/60"
+                      aria-label={language === "ar" ? "الصورة التالية" : "Next image"}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                    <div className="absolute bottom-3 right-3 rounded-full bg-black/55 px-2 py-1 text-xs text-white">
+                      {activeImageIndex + 1}/{galleryImages.length}
+                    </div>
+                  </>
+                )}
               </div>
 
-              <div className="mt-4 flex gap-3 overflow-x-auto pb-1">
-                {galleryImages.map((src) => (
+              <div className="mt-4 max-w-full grid grid-flow-col auto-cols-[5.25rem] gap-2 overflow-x-auto overscroll-x-contain pb-2 snap-x snap-mandatory sm:auto-cols-[7rem] sm:gap-3">
+                {galleryImages.map((src, index) => (
                   <button
-                    key={src}
+                    key={`${src}-${index}`}
                     type="button"
-                    onClick={() => setActiveImage(src)}
-                    className={`relative h-20 w-28 flex-shrink-0 overflow-hidden rounded-2xl border ${
-                      activeImage === src
+                    ref={(el) => {
+                      thumbnailRefs.current[index] = el;
+                    }}
+                    onClick={() => setActiveImageIndex(index)}
+                    className={`relative h-16 w-full snap-start overflow-hidden rounded-xl border sm:h-20 sm:rounded-2xl ${
+                      activeImageIndex === index
                         ? "border-primary ring-2 ring-primary/40"
                         : "border-border"
                     }`}
@@ -91,7 +151,7 @@ function RoomDetailsContent({ room }: { room: Room }) {
             </section>
 
             {/* Details & booking */}
-            <section className="space-y-6 rounded-2xl border border-border bg-card p-4 shadow-sm sm:rounded-3xl sm:p-6">
+            <section className="min-w-0 space-y-6 rounded-2xl border border-border bg-card p-4 shadow-sm sm:rounded-3xl sm:p-6">
               <div className="space-y-2">
                 <h1 className="text-2xl font-semibold text-foreground md:text-3xl">
                   {name}
