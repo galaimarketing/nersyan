@@ -7,6 +7,8 @@ import {
   ArrowRight,
   Users,
   Maximize,
+  BedDouble,
+  Bath,
   Car,
   Wifi,
   Wind,
@@ -177,6 +179,27 @@ function RoomDetailsContent({ room }: { room: Room }) {
                   <Maximize className="h-4 w-4" />
                   <span>{room.size} m²</span>
                 </div>
+                {typeof room.beds === "number" && room.beds > 0 && (
+                  <div className="flex items-center gap-2">
+                    <BedDouble className="h-4 w-4" />
+                    <span>
+                      {room.beds} {language === "ar" ? "أسِرّة" : room.beds > 1 ? "beds" : "bed"}
+                    </span>
+                  </div>
+                )}
+                {typeof room.bathrooms === "number" && room.bathrooms > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Bath className="h-4 w-4" />
+                    <span>
+                      {room.bathrooms}{" "}
+                      {language === "ar"
+                        ? "حمّامات"
+                        : room.bathrooms > 1
+                        ? "bathrooms"
+                        : "bathroom"}
+                    </span>
+                  </div>
+                )}
                 <Badge variant="secondary">
                   {language === "ar" ? "موقف سيارات مجاني" : "Free parking"}
                 </Badge>
