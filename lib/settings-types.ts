@@ -21,7 +21,7 @@ export const defaultAppSettings: AppSettings = {
   currency: "SAR",
   hotelNameEn: "Nersian Taiba",
   hotelNameAr: "نرسيان طيبة",
-  contactEmail: "info@nersiantaiba.com",
+  contactEmail: "nersyantaiba@gmail.com",
   seoTitle: "Nersian Taiba Hotel | نرسيان طيبة - Hotels in Madinah",
   seoDescription: "Luxurious hotel accommodation near Al-Masjid an-Nabawi in Madinah, Saudi Arabia.",
   seoKeywords: "Hotels in Madinah, Nersian Taiba, فنادق المدينة المنورة, نرسيان طيبة",

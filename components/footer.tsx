@@ -29,7 +29,7 @@ export function Footer() {
   const { t, language, dir } = useI18n();
   const settings = useSettings();
   const brandName = language === "ar" ? (settings.hotelNameAr ?? "نرسيان طيبة") : (settings.hotelNameEn ?? "Nersian Taiba");
-  const contactEmail = settings.contactEmail ?? "info@nersiantaiba.com";
+  const contactEmail = settings.contactEmail ?? "nersyantaiba@gmail.com";
 
   const mainLinks = [
     { href: "/", label: language === "ar" ? "الرئيسية" : "Home" },
@@ -96,7 +96,7 @@ export function Footer() {
             </div>
             <div className="flex items-center gap-2">
               <Phone className="h-4 w-4 shrink-0" />
-              <span dir="ltr">+966 50 000 0000</span>
+              <span dir="ltr">+966 50 806 0816</span>
             </div>
             <div className="flex items-center gap-2">
               <Mail className="h-4 w-4 shrink-0" />

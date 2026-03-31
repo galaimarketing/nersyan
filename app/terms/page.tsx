@@ -34,13 +34,20 @@ function TermsContent() {
         <div className="prose prose-neutral dark:prose-invert max-w-none text-muted-foreground">
           {language === "ar" ? (
             <p>
-              باستخدام خدمات نرسيان طيبة فإنك توافق على هذه الشروط. يرجى قراءة سياسة الإلغاء
+              باستخدام خدمات نرسيان طيبة فإنك توافق على هذه الشروط. يرجى قراءة{" "}
+              <Link href="/cancellation" className="text-primary hover:underline">
+                سياسة الإلغاء
+              </Link>{" "}
               فيما يتعلق بتعديل أو إلغاء الحجوزات.
             </p>
           ) : (
             <p>
               By using Nersian Taiba services you agree to these terms. Please refer to our
-              cancellation policy for modifications or cancellations of bookings.
+              {" "}
+              <Link href="/cancellation" className="text-primary hover:underline">
+                cancellation policy
+              </Link>{" "}
+              for modifications or cancellations of bookings.
             </p>
           )}
         </div>

@@ -26,6 +26,8 @@ function mapAdminRoomToRoom(ar: AdminRoom, data: AdminData): Room {
     images: images.length > 0 ? images : [image],
     capacity: ar.capacity,
     size: ar.size ?? 0,
+    beds: ar.beds,
+    bathrooms: ar.bathrooms,
     amenities: ["wifi", "ac", "parking"],
     available,
     roomsLeft: available ? 1 : 0,

@@ -13,7 +13,7 @@ const MAP_EMBED_URL =
 export function LocationSection() {
   const { t, language, dir } = useI18n();
   const settings = useSettings();
-  const contactEmail = settings.contactEmail ?? "info@nersiantaiba.com";
+  const contactEmail = settings.contactEmail ?? "nersyantaiba@gmail.com";
   const mapRef = useRef<HTMLDivElement>(null);
   const [mapShouldLoad, setMapShouldLoad] = useState(false);
 
@@ -90,7 +90,7 @@ export function LocationSection() {
                 <h3 className="mb-1 font-semibold text-foreground">
                   {language === "ar" ? "الهاتف" : "Phone"}
                 </h3>
-                <a href="tel:+966500000000" className="text-muted-foreground hover:text-primary hover:underline" dir="ltr">+966 50 000 0000</a>
+                <a href="tel:+966508060816" className="text-muted-foreground hover:text-primary hover:underline" dir="ltr">+966 50 806 0816</a>
               </div>
             </div>
 

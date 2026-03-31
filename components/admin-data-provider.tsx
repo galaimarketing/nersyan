@@ -9,12 +9,14 @@ import {
   BlogPost,
   MediaItem,
   AdminNotification,
+  AdminReview,
   defaultAdminData,
   generateId,
   generateBookingId,
   normalizeMedia,
   isRoomBooked,
   normalizeRoomNumberKey,
+  bookingTouchesRoom,
   normalizeAdminData,
   normalizeAndReconcileAdminData,
   reconcileRoomStatusesWithBookings,
@@ -57,6 +59,8 @@ type AdminDataContextValue = {
   // Contact messages
   deleteContactMessage: (id: string) => void;
   markContactMessageRead: (id: string) => void;
+  // Reviews
+  updateReviewStatus: (id: string, status: AdminReview["status"]) => void;
 };
 
 const AdminDataContext = createContext<AdminDataContextValue | null>(null);
@@ -80,6 +84,7 @@ function mergeAdminData(apiData: AdminData, localData: AdminData): AdminData {
     media: normalizeMedia(mergeById(apiData.media ?? [], localData.media ?? [])),
     notifications: mergeById(apiData.notifications ?? [], localData.notifications ?? []),
     contactMessages: mergeById(apiData.contactMessages ?? [], localData.contactMessages ?? []),
+    reviews: mergeById(apiData.reviews ?? [], localData.reviews ?? []),
   };
 }
 
@@ -337,8 +342,20 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
   const updateRoom = useCallback(
     (id: string, updates: Partial<AdminRoom>) => {
       setData((d) => {
+        const targetRoom = d.rooms.find((r) => r.id === id);
+        const shouldForceAvailable = updates.status === "available" && !!targetRoom;
+        const activeBookingStatuses = new Set(["pending", "confirmed", "checked-in"]);
+        const nextBookings = shouldForceAvailable && targetRoom
+          ? d.bookings.map((b) =>
+              activeBookingStatuses.has(String(b.status))
+                && bookingTouchesRoom(d, b, targetRoom)
+                ? { ...b, status: "checked-out" as const }
+                : b
+            )
+          : d.bookings;
         const next: AdminData = {
           ...d,
+          bookings: nextBookings,
           rooms: d.rooms.map((r) => (r.id === id ? { ...r, ...updates } : r)),
         };
         const reconciled = reconciledSnapshot(next);
@@ -484,6 +501,18 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
     });
   }, [persistToApi]);
 
+  const updateReviewStatus = useCallback((id: string, status: AdminReview["status"]) => {
+    setData((d) => {
+      const next: AdminData = {
+        ...d,
+        reviews: (d.reviews ?? []).map((r) => (r.id === id ? { ...r, status } : r)),
+      };
+      const reconciled = reconciledSnapshot(next);
+      void persistToApi(reconciled);
+      return reconciled;
+    });
+  }, [persistToApi]);
+
   const value: AdminDataContextValue = {
     data,
     setData,
@@ -509,6 +538,7 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
     deleteNotification,
     deleteContactMessage,
     markContactMessageRead,
+    updateReviewStatus,
   };
 
   return (

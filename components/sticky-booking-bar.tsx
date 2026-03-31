@@ -28,7 +28,7 @@ export function StickyBookingBar() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" asChild>
-            <a href="tel:+966500000000">
+            <a href="tel:+966508060816">
               <Phone className="h-4 w-4" />
             </a>
           </Button>

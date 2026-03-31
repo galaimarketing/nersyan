@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { I18nProvider, useI18n, LanguageToggle } from "@/lib/i18n";
 import { dispatchNersianAuthChanged } from "@/lib/use-app-user";
+import { isLikelyRealEmail, registerLocalAccount } from "@/lib/local-auth";
 
 function SignUpForm() {
   const { t, language, dir } = useI18n();
@@ -39,6 +40,15 @@ function SignUpForm() {
       return;
     }
 
+    if (!isLikelyRealEmail(email)) {
+      setError(
+        language === "ar"
+          ? "يرجى إدخال بريد إلكتروني حقيقي وصالح."
+          : "Please enter a real, valid email address."
+      );
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError(
         language === "ar"
@@ -60,10 +70,40 @@ function SignUpForm() {
     setLoading(true);
 
     try {
+      const register = registerLocalAccount({
+        fullName: fullName.trim(),
+        email: email.trim(),
+        password,
+      });
+      if (!register.ok) {
+        if (register.error === "already_exists") {
+          setError(
+            language === "ar"
+              ? "هذا البريد مسجل بالفعل. قم بتسجيل الدخول."
+              : "This email is already registered. Please sign in."
+          );
+          return;
+        }
+        if (register.error === "weak_password") {
+          setError(
+            language === "ar"
+              ? "كلمة المرور يجب أن تكون 8 أحرف على الأقل."
+              : "Password must be at least 8 characters."
+          );
+          return;
+        }
+        setError(
+          language === "ar"
+            ? "البريد الإلكتروني غير صالح."
+            : "Invalid email address."
+        );
+        return;
+      }
+
       if (typeof window !== "undefined") {
         window.localStorage.setItem(
           "nersian-user",
-          JSON.stringify({ fullName, email })
+          JSON.stringify({ fullName: fullName.trim(), email: email.trim().toLowerCase() })
         );
         dispatchNersianAuthChanged();
       }

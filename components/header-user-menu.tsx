@@ -86,6 +86,8 @@ export function HeaderUserMenu({ showSolidNav }: HeaderUserMenuProps) {
   }
 
   const initial = user.email.charAt(0).toUpperCase();
+  const emailName = user.email.split("@")[0]?.trim() ?? "";
+  const triggerName = user.fullName?.trim() || emailName || user.email;
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -100,7 +102,7 @@ export function HeaderUserMenu({ showSolidNav }: HeaderUserMenuProps) {
               showSolidNav ? "text-foreground" : "text-white"
             )}
           >
-            {user.email}
+            {triggerName}
           </span>
         </Button>
       </DropdownMenuTrigger>

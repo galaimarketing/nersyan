@@ -38,6 +38,10 @@ export interface AdminRoom {
   capacity: number;
   /** Room size in square meters. */
   size?: number;
+  /** Number of beds in this room. */
+  beds?: number;
+  /** Number of bathrooms in this room. */
+  bathrooms?: number;
   status: "available" | "occupied" | "maintenance";
   image: string;
   images?: string[];
@@ -103,6 +107,17 @@ export interface AdminContactMessage {
   read?: boolean;
 }
 
+export type AdminReviewStatus = "pending" | "approved" | "rejected";
+
+export interface AdminReview {
+  id: string;
+  name: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  status: AdminReviewStatus;
+}
+
 export interface AdminData {
   bookings: AdminBooking[];
   guests: AdminGuest[];
@@ -111,6 +126,7 @@ export interface AdminData {
   media: MediaItem[];
   notifications: AdminNotification[];
   contactMessages: AdminContactMessage[];
+  reviews: AdminReview[];
 }
 
 const STORAGE_KEY = "nersian-admin-data";
@@ -123,6 +139,7 @@ export const defaultAdminData: AdminData = {
   media: [],
   notifications: [],
   contactMessages: [],
+  reviews: [],
 };
 
 const BOOKING_STATUSES: BookingStatus[] = [
@@ -198,6 +215,18 @@ function normalizeAdminRoom(raw: unknown, index: number): AdminRoom {
           ? x.size
           : parseInt(String(x.size), 10) || undefined
         : undefined,
+    beds:
+      x.beds != null
+        ? typeof x.beds === "number"
+          ? x.beds
+          : parseInt(String(x.beds), 10) || undefined
+        : undefined,
+    bathrooms:
+      x.bathrooms != null
+        ? typeof x.bathrooms === "number"
+          ? x.bathrooms
+          : parseInt(String(x.bathrooms), 10) || undefined
+        : undefined,
     status,
     image: String(x.image ?? ""),
     images: Array.isArray(x.images) ? (x.images as string[]) : undefined,
@@ -271,6 +300,28 @@ export function normalizeAdminData(input: unknown): AdminData {
       };
     })
     .filter((v): v is AdminContactMessage => Boolean(v));
+  const reviewsRaw = Array.isArray(o.reviews) ? o.reviews : [];
+  const reviews: AdminReview[] = reviewsRaw
+    .map((r, i) => {
+      const x = r as Record<string, unknown>;
+      const name = String(x.name ?? "").trim();
+      const comment = String(x.comment ?? "").trim();
+      const rawRating = typeof x.rating === "number" ? x.rating : parseInt(String(x.rating ?? "0"), 10);
+      const rating = Number.isFinite(rawRating) ? Math.min(5, Math.max(1, rawRating)) : 5;
+      const rawStatus = String(x.status ?? "pending").trim().toLowerCase();
+      const status: AdminReviewStatus =
+        rawStatus === "approved" || rawStatus === "rejected" ? rawStatus : "pending";
+      if (!name || !comment) return null;
+      return {
+        id: String(x.id ?? "").trim() || `review-${i}-${Math.random().toString(36).slice(2, 7)}`,
+        name,
+        rating,
+        comment,
+        createdAt: pickBookingDateSlice(x.createdAt ?? x.created_at) || new Date().toISOString().slice(0, 10),
+        status,
+      };
+    })
+    .filter((v): v is AdminReview => Boolean(v));
   return {
     bookings,
     guests,
@@ -279,6 +330,7 @@ export function normalizeAdminData(input: unknown): AdminData {
     media: normalizeMedia(o.media),
     notifications: Array.isArray(o.notifications) ? (o.notifications as AdminNotification[]) : [],
     contactMessages,
+    reviews,
   };
 }
 

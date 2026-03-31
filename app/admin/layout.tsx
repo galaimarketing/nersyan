@@ -17,6 +17,7 @@ import {
   Languages,
   Laptop,
   Mail,
+  Star,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -41,6 +42,7 @@ const sidebarItems = [
   { icon: Calendar, labelKey: "admin.bookingsTitle", href: "/admin/bookings" },
   { icon: Users, labelKey: "admin.guestsTitle", href: "/admin/guests" },
   { icon: Mail, labelKey: "admin.contactMessages", href: "/admin/contact" },
+  { icon: Star, labelKey: "admin.reviews", href: "/admin/reviews" },
   { icon: FileText, labelKey: "admin.blogTitle", href: "/admin/blog" },
   { icon: ImageIcon, labelKey: "admin.mediaTitle", href: "/admin/media" },
   { icon: Settings, labelKey: "admin.settings", href: "/admin/settings" },
@@ -220,6 +222,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           return t("admin.blogTitle");
         case "contact":
           return t("admin.contactMessages");
+        case "reviews":
+          return t("admin.reviews");
         case "settings":
           return t("admin.settings");
         case "notifications":

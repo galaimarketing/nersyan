@@ -12,7 +12,7 @@ import { useSettings } from "@/lib/settings";
 export function ContactForm() {
   const { t, language, dir } = useI18n();
   const settings = useSettings();
-  const contactEmail = settings.contactEmail ?? "info@nersiantaiba.com";
+  const contactEmail = settings.contactEmail ?? "nersyantaiba@gmail.com";
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [formData, setFormData] = useState({
@@ -89,7 +89,7 @@ export function ContactForm() {
                   <h3 className="font-semibold text-foreground">
                     {language === "ar" ? "الهاتف" : "Phone"}
                   </h3>
-                  <a href="tel:+966500000000" className="text-muted-foreground hover:text-primary hover:underline" dir="ltr">+966 50 000 0000</a>
+                  <a href="tel:+966508060816" className="text-muted-foreground hover:text-primary hover:underline" dir="ltr">+966 50 806 0816</a>
                 </div>
               </div>
               

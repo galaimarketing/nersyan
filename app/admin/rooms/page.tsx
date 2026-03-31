@@ -30,26 +30,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAdminData } from "@/components/admin-data-provider";
-import type { AdminRoom, AdminData } from "@/lib/admin-store";
+import { isRoomBooked, type AdminRoom, type AdminData } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
 import { CurrencySymbol } from "@/components/currency-symbol";
 import { formatRoomNumberForLang, translatedAdminRoomType } from "@/lib/admin-room-display";
-
-const ROOM_TYPES = ["Standard Room", "Deluxe Room", "Premium Suite", "Family Room", "Presidential Suite"];
 
 function EditRoomForm({
   room,
   data,
   updateRoom,
   onClose,
-  roomTypes,
   t,
 }: {
   room: AdminRoom;
   data: AdminData;
   updateRoom: (id: string, updates: Partial<AdminRoom>) => void;
   onClose: () => void;
-  roomTypes: string[];
   t: (key: string) => string;
 }) {
   const [number, setNumber] = useState(room.number);
@@ -62,6 +58,8 @@ function EditRoomForm({
   const [seoTitle, setSeoTitle] = useState(room.seoTitle ?? "");
   const [seoDescription, setSeoDescription] = useState(room.seoDescription ?? "");
   const [capacity, setCapacity] = useState(String(room.capacity));
+  const [beds, setBeds] = useState(String(room.beds ?? 1));
+  const [bathrooms, setBathrooms] = useState(String(room.bathrooms ?? 1));
   const [imageIds, setImageIds] = useState<string[]>(
     () => {
       const existingUrls = room.images && room.images.length > 0 ? room.images : [room.image].filter(Boolean);
@@ -69,6 +67,7 @@ function EditRoomForm({
     }
   );
   const [status, setStatus] = useState<"available" | "occupied" | "maintenance">(room.status);
+  const roomHasActiveBooking = isRoomBooked(data, room);
 
   useEffect(() => {
     setNumber(room.number);
@@ -79,6 +78,8 @@ function EditRoomForm({
     setSeoTitle(room.seoTitle ?? "");
     setSeoDescription(room.seoDescription ?? "");
     setCapacity(String(room.capacity));
+    setBeds(String(room.beds ?? 1));
+    setBathrooms(String(room.bathrooms ?? 1));
     setStatus(room.status);
     const existingUrls = room.images && room.images.length > 0 ? room.images : [room.image].filter(Boolean);
     setImageIds(data.media.filter((m) => existingUrls.includes(m.url)).map((m) => m.id));
@@ -90,9 +91,22 @@ function EditRoomForm({
         e.preventDefault();
         const priceNum = parseInt(price, 10);
         const capacityNum = parseInt(capacity, 10);
+        const bedsNum = parseInt(beds, 10);
+        const bathroomsNum = parseInt(bathrooms, 10);
         const sizeNum = size ? parseInt(size, 10) : 0;
         const originalNum = originalPrice ? parseInt(originalPrice, 10) : undefined;
-        if (!number.trim() || isNaN(priceNum) || priceNum < 0 || isNaN(capacityNum) || capacityNum < 1 || (size && isNaN(sizeNum))) return;
+        if (
+          !number.trim()
+          || isNaN(priceNum)
+          || priceNum < 0
+          || isNaN(capacityNum)
+          || capacityNum < 1
+          || isNaN(bedsNum)
+          || bedsNum < 1
+          || isNaN(bathroomsNum)
+          || bathroomsNum < 1
+          || (size && isNaN(sizeNum))
+        ) return;
         const selectedMedia = data.media.filter((m) => imageIds.includes(m.id));
         const imageUrls = selectedMedia.map((m) => m.url);
         updateRoom(room.id, {
@@ -104,6 +118,8 @@ function EditRoomForm({
           seoTitle: seoTitle.trim() || undefined,
           seoDescription: seoDescription.trim() || undefined,
           capacity: capacityNum,
+          beds: bedsNum,
+          bathrooms: bathroomsNum,
           status,
           image: imageUrls[0] ?? room.image,
           images: imageUrls.length > 0 ? imageUrls : room.images,
@@ -124,18 +140,13 @@ function EditRoomForm({
         </div>
         <div className="space-y-2">
           <Label htmlFor="edit-roomType">{t("admin.roomType")}</Label>
-          <Select value={type} onValueChange={setType}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {roomTypes.map((rt) => (
-                <SelectItem key={rt} value={rt}>
-                  {rt}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Input
+            id="edit-roomType"
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            placeholder={t("admin.roomType")}
+            required
+          />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
@@ -158,6 +169,30 @@ function EditRoomForm({
             min={1}
             value={capacity}
             onChange={(e) => setCapacity(e.target.value)}
+            required
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="edit-beds">{t("admin.bedsLabel")}</Label>
+          <Input
+            id="edit-beds"
+            type="number"
+            min={1}
+            value={beds}
+            onChange={(e) => setBeds(e.target.value)}
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="edit-bathrooms">{t("admin.bathroomsLabel")}</Label>
+          <Input
+            id="edit-bathrooms"
+            type="number"
+            min={1}
+            value={bathrooms}
+            onChange={(e) => setBathrooms(e.target.value)}
             required
           />
         </div>
@@ -198,6 +233,9 @@ function EditRoomForm({
             <SelectItem value="maintenance">{t("admin.maintenance")}</SelectItem>
           </SelectContent>
         </Select>
+        {roomHasActiveBooking ? (
+          <p className="text-xs text-muted-foreground">{t("admin.roomStatusForceAvailableHint")}</p>
+        ) : null}
       </div>
       <div className="space-y-2">
         <Label>{t("admin.roomImageFromMedia")}</Label>
@@ -269,10 +307,12 @@ export default function RoomsPage() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newNumber, setNewNumber] = useState("");
-  const [newType, setNewType] = useState("Standard Room");
+  const [newType, setNewType] = useState("");
   const [newPrice, setNewPrice] = useState("");
   const [newOriginalPrice, setNewOriginalPrice] = useState("");
   const [newCapacity, setNewCapacity] = useState("");
+  const [newBeds, setNewBeds] = useState("");
+  const [newBathrooms, setNewBathrooms] = useState("");
   const [newSize, setNewSize] = useState("");
   const [newImageIds, setNewImageIds] = useState<string[]>([]);
   const [editRoomId, setEditRoomId] = useState<string | null>(null);
@@ -361,25 +401,44 @@ export default function RoomsPage() {
                 const price = parseInt(newPrice, 10);
                 const original = newOriginalPrice ? parseInt(newOriginalPrice, 10) : undefined;
                 const capacity = parseInt(newCapacity, 10);
+                const beds = parseInt(newBeds, 10);
+                const bathrooms = parseInt(newBathrooms, 10);
                 const size = newSize ? parseInt(newSize, 10) : 0;
-                if (!newNumber.trim() || isNaN(price) || price < 0 || isNaN(capacity) || capacity < 1 || (newSize && isNaN(size))) return;
+                if (
+                  !newNumber.trim()
+                  || !newType.trim()
+                  || isNaN(price)
+                  || price < 0
+                  || isNaN(capacity)
+                  || capacity < 1
+                  || isNaN(beds)
+                  || beds < 1
+                  || isNaN(bathrooms)
+                  || bathrooms < 1
+                  || (newSize && isNaN(size))
+                ) return;
                 const selectedMedia = data.media.filter((m) => newImageIds.includes(m.id));
                 const imageUrls = selectedMedia.map((m) => m.url);
                 addRoom({
                   number: newNumber.trim(),
-                  type: newType,
+                  type: newType.trim(),
                   price,
                   originalPrice: original && original > price ? original : undefined,
                   size: size > 0 ? size : undefined,
                   capacity,
+                  beds,
+                  bathrooms,
                   status: "available",
                   image: imageUrls[0] ?? "",
                   images: imageUrls,
                 });
                 setNewNumber("");
+                setNewType("");
                 setNewPrice("");
                 setNewOriginalPrice("");
                 setNewCapacity("");
+                setNewBeds("");
+                setNewBathrooms("");
                 setNewSize("");
                 setNewImageIds([]);
                 setIsAddDialogOpen(false);
@@ -399,18 +458,13 @@ export default function RoomsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="roomType">{t("admin.roomType")}</Label>
-                  <Select value={newType} onValueChange={setNewType}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("admin.selectType")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ROOM_TYPES.map((rt) => (
-                        <SelectItem key={rt} value={rt}>
-                          {rt}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    id="roomType"
+                    placeholder={t("admin.roomType")}
+                    value={newType}
+                    onChange={(e) => setNewType(e.target.value)}
+                    required
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -435,6 +489,32 @@ export default function RoomsPage() {
                     placeholder="2"
                     value={newCapacity}
                     onChange={(e) => setNewCapacity(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="beds">{t("admin.bedsLabel")}</Label>
+                  <Input
+                    id="beds"
+                    type="number"
+                    min={1}
+                    placeholder="1"
+                    value={newBeds}
+                    onChange={(e) => setNewBeds(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bathrooms">{t("admin.bathroomsLabel")}</Label>
+                  <Input
+                    id="bathrooms"
+                    type="number"
+                    min={1}
+                    placeholder="1"
+                    value={newBathrooms}
+                    onChange={(e) => setNewBathrooms(e.target.value)}
                     required
                   />
                 </div>
@@ -549,7 +629,6 @@ export default function RoomsPage() {
               data={data}
               updateRoom={updateRoom}
               onClose={() => setEditRoomId(null)}
-              roomTypes={ROOM_TYPES}
               t={t}
             />
           )}

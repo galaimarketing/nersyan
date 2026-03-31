@@ -168,7 +168,7 @@ export function HeroSection() {
             variant="outline"
             className="h-14 rounded-full px-8 text-base"
           >
-            <a href="tel:+966500000000">
+            <a href="tel:+966508060816">
               <Phone className="me-2 h-5 w-5" />
               <span className="text-nowrap">{t("booking.callToBook")}</span>
             </a>

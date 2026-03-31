@@ -27,7 +27,7 @@ function snapshot(s: ReturnType<typeof loadSettings>) {
     taxRatePercent: s.taxRatePercent,
     hotelNameEn: s.hotelNameEn ?? "Nersian Taiba",
     hotelNameAr: s.hotelNameAr ?? "نرسيان طيبة",
-    contactEmail: s.contactEmail ?? "info@nersiantaiba.com",
+    contactEmail: s.contactEmail ?? "nersyantaiba@gmail.com",
     seoTitle: s.seoTitle ?? "",
     seoDescription: s.seoDescription ?? "",
     seoKeywords: s.seoKeywords ?? "",
@@ -46,7 +46,7 @@ export default function AdminSettingsPage() {
   const [taxRate, setTaxRate] = useState("15");
   const [hotelNameEn, setHotelNameEn] = useState("Nersian Taiba");
   const [hotelNameAr, setHotelNameAr] = useState("نرسيان طيبة");
-  const [contactEmail, setContactEmail] = useState("info@nersiantaiba.com");
+  const [contactEmail, setContactEmail] = useState("nersyantaiba@gmail.com");
   const [seoTitle, setSeoTitle] = useState("");
   const [seoDescription, setSeoDescription] = useState("");
   const [seoKeywords, setSeoKeywords] = useState("");
@@ -86,7 +86,7 @@ export default function AdminSettingsPage() {
       })(),
       hotelNameEn: hotelNameEn.trim() || "Nersian Taiba",
       hotelNameAr: hotelNameAr.trim() || "نرسيان طيبة",
-      contactEmail: contactEmail.trim() || "info@nersiantaiba.com",
+      contactEmail: contactEmail.trim() || "nersyantaiba@gmail.com",
       seoTitle: seoTitle.trim(),
       seoDescription: seoDescription.trim(),
       seoKeywords: seoKeywords.trim(),

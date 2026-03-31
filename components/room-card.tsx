@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Wifi, Wind, UtensilsCrossed, Car, Users, Maximize } from "lucide-react";
+import { Wifi, Wind, Car, Users, Maximize, BedDouble, Bath, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,17 @@ export function RoomCard({ room, onBook }: RoomCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const images = room.images && room.images.length > 0 ? room.images : [room.image];
   const [activeIndex, setActiveIndex] = useState(0);
+  const canSlide = images.length > 1;
+
+  const goPrev = () => {
+    if (!canSlide) return;
+    setActiveIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  const goNext = () => {
+    if (!canSlide) return;
+    setActiveIndex((prev) => (prev + 1) % images.length);
+  };
 
   const hasDiscount = room.originalPrice != null && room.originalPrice > room.price;
 
@@ -54,9 +65,37 @@ export function RoomCard({ room, onBook }: RoomCardProps) {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
-          {/* Simple carousel controls when there are multiple images */}
-          {images.length > 1 && (
-            <div className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-2">
+          {/* Image arrows */}
+          {canSlide && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  goPrev();
+                }}
+                className="absolute start-3 top-1/2 z-20 -translate-y-1/2 rounded-full bg-background/85 p-1.5 text-foreground shadow-sm transition hover:bg-background"
+                aria-label={language === "ar" ? "الصورة السابقة" : "Previous image"}
+              >
+                {dir === "rtl" ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  goNext();
+                }}
+                className="absolute end-3 top-1/2 z-20 -translate-y-1/2 rounded-full bg-background/85 p-1.5 text-foreground shadow-sm transition hover:bg-background"
+                aria-label={language === "ar" ? "الصورة التالية" : "Next image"}
+              >
+                {dir === "rtl" ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </button>
+            </>
+          )}
+
+          {/* Dots (kept away from price badge) */}
+          {canSlide && (
+            <div className="absolute bottom-3 start-4 z-20 flex items-center gap-2">
               {images.map((_, index) => (
                 <button
                   key={index}
@@ -83,7 +122,7 @@ export function RoomCard({ room, onBook }: RoomCardProps) {
           </div>
 
           {/* Price Tag */}
-          <div className="absolute bottom-4 end-4 rounded-lg bg-background/90 px-3 py-2 backdrop-blur-sm">
+          <div className="absolute bottom-4 end-4 z-10 rounded-lg bg-background/90 px-3 py-2 backdrop-blur-sm">
             <div className="flex items-baseline gap-2">
               <p className="text-lg font-bold text-primary">
                 {room.price} <CurrencySymbol />
@@ -117,6 +156,14 @@ export function RoomCard({ room, onBook }: RoomCardProps) {
           <div className="flex items-center gap-1">
             <Maximize className="h-4 w-4" />
             <span>{room.size} m²</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <BedDouble className="h-4 w-4" />
+            <span>{room.beds ?? 0}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Bath className="h-4 w-4" />
+            <span>{room.bathrooms ?? 0}</span>
           </div>
         </div>
 

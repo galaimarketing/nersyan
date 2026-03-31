@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { I18nProvider, useI18n, LanguageToggle } from "@/lib/i18n";
 import { dispatchNersianAuthChanged } from "@/lib/use-app-user";
+import { authenticateLocalAccount } from "@/lib/local-auth";
 
 function SignInForm() {
   const { t, language, dir } = useI18n();
@@ -40,10 +41,20 @@ function SignInForm() {
     setLoading(true);
 
     try {
+      const account = authenticateLocalAccount(email, password);
+      if (!account) {
+        setError(
+          language === "ar"
+            ? "البريد الإلكتروني أو كلمة المرور غير صحيحة، أو الحساب غير مسجل."
+            : "Email or password is incorrect, or this account is not registered."
+        );
+        return;
+      }
+
       if (typeof window !== "undefined") {
         window.localStorage.setItem(
           "nersian-user",
-          JSON.stringify({ email, rememberMe })
+          JSON.stringify({ email: account.email, fullName: account.fullName, rememberMe })
         );
         dispatchNersianAuthChanged();
       }

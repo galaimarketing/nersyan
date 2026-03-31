@@ -10,6 +10,8 @@ export interface Room {
   images?: string[];
   capacity: number;
   size: number;
+  beds?: number;
+  bathrooms?: number;
   amenities: string[];
   available: boolean;
   roomsLeft?: number;
