@@ -6,6 +6,7 @@ export interface Room {
   descriptionEn: string;
   price: number;
   originalPrice?: number;
+  discountExpiresAt?: string;
   image: string;
   images?: string[];
   capacity: number;

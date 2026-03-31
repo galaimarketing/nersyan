@@ -35,6 +35,17 @@ import { useI18n } from "@/lib/i18n";
 import { CurrencySymbol } from "@/components/currency-symbol";
 import { formatRoomNumberForLang, translatedAdminRoomType } from "@/lib/admin-room-display";
 
+function nextDiscountExpiryIso(hours = 24): string {
+  return new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+}
+
+function getDiscountDurationHours(expiresAt?: string): string {
+  if (!expiresAt) return "24";
+  const ms = new Date(expiresAt).getTime() - Date.now();
+  if (!Number.isFinite(ms) || ms <= 0) return "24";
+  return String(Math.max(1, Math.ceil(ms / (60 * 60 * 1000))));
+}
+
 function EditRoomForm({
   room,
   data,
@@ -53,6 +64,12 @@ function EditRoomForm({
   const [price, setPrice] = useState(String(room.price));
   const [originalPrice, setOriginalPrice] = useState(
     room.originalPrice && room.originalPrice > room.price ? String(room.originalPrice) : ""
+  );
+  const [discountTimerEnabled, setDiscountTimerEnabled] = useState(
+    room.discountTimerEnabled ?? Boolean(room.discountExpiresAt)
+  );
+  const [discountDurationHours, setDiscountDurationHours] = useState(
+    getDiscountDurationHours(room.discountExpiresAt)
   );
   const [size, setSize] = useState(room.size != null ? String(room.size) : "");
   const [seoTitle, setSeoTitle] = useState(room.seoTitle ?? "");
@@ -74,6 +91,8 @@ function EditRoomForm({
     setType(room.type);
     setPrice(String(room.price));
     setOriginalPrice(room.originalPrice && room.originalPrice > room.price ? String(room.originalPrice) : "");
+    setDiscountTimerEnabled(room.discountTimerEnabled ?? Boolean(room.discountExpiresAt));
+    setDiscountDurationHours(getDiscountDurationHours(room.discountExpiresAt));
     setSize(room.size != null ? String(room.size) : "");
     setSeoTitle(room.seoTitle ?? "");
     setSeoDescription(room.seoDescription ?? "");
@@ -109,11 +128,16 @@ function EditRoomForm({
         ) return;
         const selectedMedia = data.media.filter((m) => imageIds.includes(m.id));
         const imageUrls = selectedMedia.map((m) => m.url);
+        const hasValidDiscount = Boolean(originalNum && originalNum > priceNum);
+        const durationHoursNum = parseInt(discountDurationHours, 10);
+        const durationHours = !isNaN(durationHoursNum) && durationHoursNum > 0 ? durationHoursNum : 24;
         updateRoom(room.id, {
           number: number.trim(),
           type,
           price: priceNum,
           originalPrice: originalNum && originalNum > priceNum ? originalNum : undefined,
+          discountTimerEnabled: hasValidDiscount ? discountTimerEnabled : undefined,
+          discountExpiresAt: hasValidDiscount && discountTimerEnabled ? nextDiscountExpiryIso(durationHours) : undefined,
           size: sizeNum > 0 ? sizeNum : undefined,
           seoTitle: seoTitle.trim() || undefined,
           seoDescription: seoDescription.trim() || undefined,
@@ -148,6 +172,34 @@ function EditRoomForm({
             required
           />
         </div>
+      </div>
+      <div className="space-y-2">
+        <Label>{t("admin.discountTimerLabel")}</Label>
+        <div className="flex items-center gap-2">
+          <input
+            id="edit-discount-timer"
+            type="checkbox"
+            checked={discountTimerEnabled}
+            onChange={(e) => setDiscountTimerEnabled(e.target.checked)}
+            className="h-4 w-4 accent-primary"
+            disabled={!originalPrice || parseInt(originalPrice || "0", 10) <= parseInt(price || "0", 10)}
+          />
+          <Label htmlFor="edit-discount-timer" className="cursor-pointer text-sm font-normal">
+            {t("admin.discountTimerEnable")}
+          </Label>
+        </div>
+        {discountTimerEnabled && (
+          <div className="max-w-[220px] space-y-1">
+            <Input
+              type="number"
+              min={1}
+              value={discountDurationHours}
+              onChange={(e) => setDiscountDurationHours(e.target.value)}
+              placeholder="24"
+            />
+            <p className="text-xs text-muted-foreground">{t("admin.discountTimerHoursHint")}</p>
+          </div>
+        )}
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
@@ -310,6 +362,8 @@ export default function RoomsPage() {
   const [newType, setNewType] = useState("");
   const [newPrice, setNewPrice] = useState("");
   const [newOriginalPrice, setNewOriginalPrice] = useState("");
+  const [newDiscountTimerEnabled, setNewDiscountTimerEnabled] = useState(true);
+  const [newDiscountDurationHours, setNewDiscountDurationHours] = useState("24");
   const [newCapacity, setNewCapacity] = useState("");
   const [newBeds, setNewBeds] = useState("");
   const [newBathrooms, setNewBathrooms] = useState("");
@@ -419,11 +473,17 @@ export default function RoomsPage() {
                 ) return;
                 const selectedMedia = data.media.filter((m) => newImageIds.includes(m.id));
                 const imageUrls = selectedMedia.map((m) => m.url);
+                const hasValidDiscount = Boolean(original && original > price);
+                const durationHoursNum = parseInt(newDiscountDurationHours, 10);
+                const durationHours = !isNaN(durationHoursNum) && durationHoursNum > 0 ? durationHoursNum : 24;
                 addRoom({
                   number: newNumber.trim(),
                   type: newType.trim(),
                   price,
                   originalPrice: original && original > price ? original : undefined,
+                  discountTimerEnabled: hasValidDiscount ? newDiscountTimerEnabled : undefined,
+                  discountExpiresAt:
+                    hasValidDiscount && newDiscountTimerEnabled ? nextDiscountExpiryIso(durationHours) : undefined,
                   size: size > 0 ? size : undefined,
                   capacity,
                   beds,
@@ -436,6 +496,8 @@ export default function RoomsPage() {
                 setNewType("");
                 setNewPrice("");
                 setNewOriginalPrice("");
+                setNewDiscountTimerEnabled(true);
+                setNewDiscountDurationHours("24");
                 setNewCapacity("");
                 setNewBeds("");
                 setNewBathrooms("");
@@ -466,6 +528,34 @@ export default function RoomsPage() {
                     required
                   />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label>{t("admin.discountTimerLabel")}</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="new-discount-timer"
+                    type="checkbox"
+                    checked={newDiscountTimerEnabled}
+                    onChange={(e) => setNewDiscountTimerEnabled(e.target.checked)}
+                    className="h-4 w-4 accent-primary"
+                    disabled={!newOriginalPrice || parseInt(newOriginalPrice || "0", 10) <= parseInt(newPrice || "0", 10)}
+                  />
+                  <Label htmlFor="new-discount-timer" className="cursor-pointer text-sm font-normal">
+                    {t("admin.discountTimerEnable")}
+                  </Label>
+                </div>
+                {newDiscountTimerEnabled && (
+                  <div className="max-w-[220px] space-y-1">
+                    <Input
+                      type="number"
+                      min={1}
+                      value={newDiscountDurationHours}
+                      onChange={(e) => setNewDiscountDurationHours(e.target.value)}
+                      placeholder="24"
+                    />
+                    <p className="text-xs text-muted-foreground">{t("admin.discountTimerHoursHint")}</p>
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">

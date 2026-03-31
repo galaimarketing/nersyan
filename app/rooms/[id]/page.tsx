@@ -20,7 +20,11 @@ function RoomDetailsContent({ room }: { room: Room }) {
   );
   const [isBookingOpen, setIsBookingOpen] = useState(false);
 
-  const hasDiscount = room.originalPrice != null && room.originalPrice > room.price;
+  const discountExpiresAtMs = room.discountExpiresAt ? new Date(room.discountExpiresAt).getTime() : null;
+  const hasDiscount =
+    room.originalPrice != null &&
+    room.originalPrice > room.price &&
+    (discountExpiresAtMs == null || discountExpiresAtMs > Date.now());
 
   const name = language === "ar" ? room.nameAr : room.nameEn;
   const description = language === "ar" ? room.descriptionAr : room.descriptionEn;

@@ -5,6 +5,7 @@ import {
   defaultAdminData,
   normalizeAdminData,
   normalizeAndReconcileAdminData,
+  reconcileRoomDiscountExpiries,
   reconcileRoomStatusesWithBookings,
 } from "@/lib/admin-store";
 
@@ -23,11 +24,13 @@ export async function GET() {
     });
   }
   const normalized = normalizeAdminData(data);
-  const { next, changed } = reconcileRoomStatusesWithBookings(normalized);
+  const withStatuses = reconcileRoomStatusesWithBookings(normalized);
+  const withDiscountExpiries = reconcileRoomDiscountExpiries(withStatuses.next);
+  const changed = withStatuses.changed || withDiscountExpiries.changed;
   if (changed) {
-    await setAdminData(next);
+    await setAdminData(withDiscountExpiries.next);
   }
-  return NextResponse.json(next, {
+  return NextResponse.json(withDiscountExpiries.next, {
     headers: { "Cache-Control": "no-store, max-age=0" },
   });
 }

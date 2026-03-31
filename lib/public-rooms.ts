@@ -22,6 +22,8 @@ function mapAdminRoomToRoom(ar: AdminRoom, data: AdminData): Room {
     descriptionAr: descAr,
     descriptionEn: descEn,
     price: ar.price,
+    originalPrice: ar.originalPrice && ar.originalPrice > ar.price ? ar.originalPrice : undefined,
+    discountExpiresAt: ar.discountExpiresAt,
     image,
     images: images.length > 0 ? images : [image],
     capacity: ar.capacity,

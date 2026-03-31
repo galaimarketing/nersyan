@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Wifi, Wind, Car, Users, Maximize, BedDouble, Bath, ChevronLeft, ChevronRight } from "lucide-react";
@@ -33,7 +33,39 @@ export function RoomCard({ room, onBook }: RoomCardProps) {
     setActiveIndex((prev) => (prev + 1) % images.length);
   };
 
-  const hasDiscount = room.originalPrice != null && room.originalPrice > room.price;
+  useEffect(() => {
+    if (!canSlide || isHovered) return;
+    const timer = window.setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % images.length);
+    }, 3500);
+    return () => window.clearInterval(timer);
+  }, [canSlide, images.length, isHovered]);
+
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const hasDiscountBase = room.originalPrice != null && room.originalPrice > room.price;
+  const discountExpiresAtMs = room.discountExpiresAt ? new Date(room.discountExpiresAt).getTime() : null;
+  const hasActiveDiscount = hasDiscountBase && (discountExpiresAtMs == null || discountExpiresAtMs > nowMs);
+  const discountRemainingMs =
+    discountExpiresAtMs != null ? Math.max(0, discountExpiresAtMs - nowMs) : null;
+
+  useEffect(() => {
+    if (!hasDiscountBase || discountExpiresAtMs == null) return;
+    if (discountExpiresAtMs <= nowMs) return;
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [discountExpiresAtMs, hasDiscountBase, nowMs]);
+
+  const discountCountdownText = useMemo(() => {
+    if (discountRemainingMs == null || discountRemainingMs <= 0) return null;
+    const totalSec = Math.floor(discountRemainingMs / 1000);
+    const hours = Math.floor(totalSec / 3600);
+    const minutes = Math.floor((totalSec % 3600) / 60);
+    const seconds = totalSec % 60;
+    const hh = String(hours).padStart(2, "0");
+    const mm = String(minutes).padStart(2, "0");
+    const ss = String(seconds).padStart(2, "0");
+    return `${hh}:${mm}:${ss}`;
+  }, [discountRemainingMs]);
 
   const name = language === "ar" ? room.nameAr : room.nameEn;
   const description = language === "ar" ? room.descriptionAr : room.descriptionEn;
@@ -119,6 +151,11 @@ export function RoomCard({ room, onBook }: RoomCardProps) {
             {!room.available && (
               <Badge variant="secondary">{t("booking.booked")}</Badge>
             )}
+            {hasActiveDiscount && discountCountdownText ? (
+              <Badge className="border-amber-300/30 bg-amber-500/95 text-white">
+                {language === "ar" ? `ينتهي الخصم خلال ${discountCountdownText}` : `Discount ends in ${discountCountdownText}`}
+              </Badge>
+            ) : null}
           </div>
 
           {/* Price Tag */}
@@ -127,7 +164,7 @@ export function RoomCard({ room, onBook }: RoomCardProps) {
               <p className="text-lg font-bold text-primary">
                 {room.price} <CurrencySymbol />
               </p>
-              {hasDiscount && (
+              {hasActiveDiscount && (
                 <p className="text-sm text-muted-foreground line-through">
                   {room.originalPrice} <CurrencySymbol />
                 </p>

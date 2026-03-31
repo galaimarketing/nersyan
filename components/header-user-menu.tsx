@@ -85,7 +85,6 @@ export function HeaderUserMenu({ showSolidNav }: HeaderUserMenuProps) {
     );
   }
 
-  const initial = user.email.charAt(0).toUpperCase();
   const emailName = user.email.split("@")[0]?.trim() ?? "";
   const triggerName = user.fullName?.trim() || emailName || user.email;
 
@@ -94,7 +93,7 @@ export function HeaderUserMenu({ showSolidNav }: HeaderUserMenuProps) {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className={cn("gap-2 rounded-full px-2.5", triggerClass)} aria-label={t("nav.accountMenu")}>
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-            {user.fullName?.charAt(0)?.toUpperCase() ?? initial}
+            <User className="h-4 w-4" />
           </span>
           <span
             className={cn(

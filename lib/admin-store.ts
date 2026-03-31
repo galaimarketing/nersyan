@@ -35,6 +35,10 @@ export interface AdminRoom {
   price: number;
   /** Optional original price before discount; if present and > price, treated as discounted. */
   originalPrice?: number;
+  /** Optional end time for active discount countdown (ISO string). */
+  discountExpiresAt?: string;
+  /** Controls whether discount countdown timer is enabled for this room. */
+  discountTimerEnabled?: boolean;
   capacity: number;
   /** Room size in square meters. */
   size?: number;
@@ -208,6 +212,12 @@ function normalizeAdminRoom(raw: unknown, index: number): AdminRoom {
     price,
     originalPrice:
       orig != null && Number.isFinite(orig) && orig > price ? orig : undefined,
+    discountExpiresAt:
+      typeof x.discountExpiresAt === "string" && x.discountExpiresAt.trim()
+        ? x.discountExpiresAt.trim()
+        : undefined,
+    discountTimerEnabled:
+      typeof x.discountTimerEnabled === "boolean" ? x.discountTimerEnabled : undefined,
     capacity: cap,
     size:
       x.size != null
@@ -557,8 +567,55 @@ export function reconcileRoomStatusesWithBookings(data: AdminData): { next: Admi
   return { next: { ...data, rooms }, changed };
 }
 
+/**
+ * Ensure discounted rooms always have an expiry timestamp.
+ * This backfills older rows created before `discountExpiresAt` existed.
+ */
+export function reconcileRoomDiscountExpiries(data: AdminData): { next: AdminData; changed: boolean } {
+  let changed = false;
+  const rooms = data.rooms.map((room) => {
+    const hasDiscount =
+      typeof room.originalPrice === "number" &&
+      Number.isFinite(room.originalPrice) &&
+      room.originalPrice > room.price;
+    const expiresAtMs = room.discountExpiresAt ? new Date(room.discountExpiresAt).getTime() : NaN;
+    const timerEnabled = room.discountTimerEnabled;
+    if (hasDiscount) {
+      // Migration/default behavior for old rows: discount implies timer enabled unless explicitly disabled.
+      if (timerEnabled === false) {
+        if (room.discountExpiresAt) {
+          changed = true;
+          return { ...room, discountExpiresAt: undefined, discountTimerEnabled: false };
+        }
+        return room;
+      }
+      if (!room.discountExpiresAt || Number.isNaN(expiresAtMs)) {
+        changed = true;
+        return {
+          ...room,
+          discountTimerEnabled: true,
+          discountExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        };
+      }
+      if (timerEnabled !== true) {
+        changed = true;
+        return { ...room, discountTimerEnabled: true };
+      }
+      return room;
+    }
+    if (room.discountExpiresAt || room.discountTimerEnabled != null) {
+      changed = true;
+      return { ...room, discountExpiresAt: undefined, discountTimerEnabled: undefined };
+    }
+    return room;
+  });
+  return { next: { ...data, rooms }, changed };
+}
+
 export function normalizeAndReconcileAdminData(input: unknown): AdminData {
-  return reconcileRoomStatusesWithBookings(normalizeAdminData(input)).next;
+  const normalized = normalizeAdminData(input);
+  const withStatuses = reconcileRoomStatusesWithBookings(normalized).next;
+  return reconcileRoomDiscountExpiries(withStatuses).next;
 }
 
 /**

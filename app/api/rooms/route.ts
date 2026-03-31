@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
-import { getAdminData } from "@/lib/db";
-import { isRoomAvailableForPublic, type AdminData, type AdminRoom } from "@/lib/admin-store";
+import { getAdminData, setAdminData } from "@/lib/db";
+import {
+  isRoomAvailableForPublic,
+  normalizeAdminData,
+  reconcileRoomDiscountExpiries,
+  type AdminData,
+  type AdminRoom,
+} from "@/lib/admin-store";
 import type { Room } from "@/lib/rooms-data";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +28,7 @@ function mapAdminRoomToRoom(ar: AdminRoom, data: AdminData): Room {
     descriptionEn: descEn,
     price: ar.price,
     originalPrice: ar.originalPrice && ar.originalPrice > ar.price ? ar.originalPrice : undefined,
+    discountExpiresAt: ar.discountExpiresAt,
     image,
     images: images.length > 0 ? images : [image],
     capacity: ar.capacity,
@@ -35,10 +42,15 @@ function mapAdminRoomToRoom(ar: AdminRoom, data: AdminData): Room {
 }
 
 export async function GET() {
-  const data = await getAdminData();
-  if (!data) {
+  const raw = await getAdminData();
+  if (!raw) {
     return NextResponse.json([]);
   }
-  const rooms = data.rooms.map((ar) => mapAdminRoomToRoom(ar, data));
+  const normalized = normalizeAdminData(raw);
+  const withDiscountExpiries = reconcileRoomDiscountExpiries(normalized);
+  if (withDiscountExpiries.changed) {
+    await setAdminData(withDiscountExpiries.next);
+  }
+  const rooms = withDiscountExpiries.next.rooms.map((ar) => mapAdminRoomToRoom(ar, withDiscountExpiries.next));
   return NextResponse.json(rooms);
 }

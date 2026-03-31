@@ -40,7 +40,9 @@ export function LocationHighlightSection({
         aria-hidden
       />
       <div className="relative mx-auto flex min-h-[160px] max-w-7xl flex-col justify-center px-6 md:min-h-[200px] lg:px-12">
-        <div className="w-full max-w-[280px] rounded-2xl border border-white/20 bg-white/75 p-5 shadow-lg backdrop-blur-sm">
+        <div
+          className={`w-full max-w-[280px] rounded-2xl border border-white/20 bg-white/75 p-5 shadow-lg backdrop-blur-sm ${flipGradient ? "ms-auto" : ""}`}
+        >
           {icon && (
             <div className="mb-3 inline-flex rounded-lg bg-black/10 p-2 text-black">
               {icon}

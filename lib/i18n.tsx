@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
+import { Languages } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Language = "ar" | "en";
@@ -287,6 +288,9 @@ const translations: Translations = {
   "admin.seoSettings": { ar: "إعدادات SEO", en: "SEO Settings" },
   "admin.updatePricing": { ar: "تحديث الأسعار", en: "Update Pricing" },
   "admin.originalPriceLabel": { ar: "السعر قبل الخصم (اختياري)", en: "Original price (optional)" },
+  "admin.discountTimerLabel": { ar: "مؤقت الخصم", en: "Discount timer" },
+  "admin.discountTimerEnable": { ar: "تفعيل عداد تنازلي للخصم", en: "Enable discount countdown timer" },
+  "admin.discountTimerHoursHint": { ar: "مدة الخصم بالساعات (مثل 24)", en: "Discount duration in hours (e.g. 24)" },
   "admin.sizeLabel": { ar: "مساحة الغرفة (م²)", en: "Room size (m²)" },
   "admin.bedsLabel": { ar: "عدد الأسرّة", en: "Beds" },
   "admin.bathroomsLabel": { ar: "عدد الحمّامات", en: "Bathrooms" },
@@ -485,7 +489,8 @@ export function LanguageToggle({ className }: { className?: string }) {
         className
       )}
     >
-      {language === "ar" ? "English" : "العربية"}
+      <Languages className="h-4 w-4" />
+      {language === "ar" ? "EN" : "AR"}
     </button>
   );
 }
@@ -515,7 +520,8 @@ export function AdminLanguageToggle() {
       }}
       className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent"
     >
-      {language === "ar" ? "English" : "العربية"}
+      <Languages className="h-4 w-4" />
+      {language === "ar" ? "EN" : "AR"}
     </button>
   );
 }
