@@ -110,7 +110,7 @@ export function ContactForm() {
           </div>
           
           {/* Right side - Form (glass) */}
-          <div className="relative overflow-hidden rounded-3xl border border-white/20 bg-card/50 p-6 shadow-2xl shadow-black/10 backdrop-blur-xl dark:border-white/10 dark:bg-card/40 lg:p-8">
+          <div className="relative overflow-hidden rounded-3xl border border-zinc-200/80 ring-1 ring-zinc-200/70 bg-card/50 p-6 shadow-[0_10px_30px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-xl dark:border-white/15 dark:ring-white/10 dark:bg-card/40 lg:p-8">
             {isSuccess ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-600">
@@ -157,6 +157,7 @@ export function ContactForm() {
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="+966 5XX XXX XXXX"
+                    dir="ltr"
                   />
                 </div>
                 

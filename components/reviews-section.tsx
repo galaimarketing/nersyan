@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,9 +48,21 @@ export function ReviewsSection() {
     return total / reviews.length;
   }, [reviews]);
 
-  const visibleReviews = useMemo(() => {
+  const activeReview = useMemo(() => {
+    if (!reviews.length) return null;
+    return reviews[activeReviewIndex % reviews.length] ?? null;
+  }, [activeReviewIndex, reviews]);
+
+  const activeReviewsDesktop = useMemo(() => {
+    if (!reviews.length) return [];
     if (reviews.length <= 3) return reviews;
     return [0, 1, 2].map((offset) => reviews[(activeReviewIndex + offset) % reviews.length]);
+  }, [activeReviewIndex, reviews]);
+
+  const activeReviewsMedium = useMemo(() => {
+    if (!reviews.length) return [];
+    if (reviews.length <= 2) return reviews;
+    return [0, 1].map((offset) => reviews[(activeReviewIndex + offset) % reviews.length]);
   }, [activeReviewIndex, reviews]);
 
   const submit = async (e: React.FormEvent) => {
@@ -143,33 +155,92 @@ export function ReviewsSection() {
             </Card>
           ) : null}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("reviews.customerReviews")}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {reviews.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t("reviews.noReviews")}</p>
-              ) : (
-                visibleReviews.map((r) => (
-                  <div key={r.id} className="rounded-lg border p-3">
-                    <div className="mb-1 flex items-center justify-between">
-                      <p className="font-medium text-foreground">{r.name}</p>
+          {reviews.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t("reviews.noReviews")}</p>
+          ) : (
+            <div className="space-y-3">
+              {reviews.length > 1 ? (
+                <div className="flex w-full items-center justify-between px-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 rounded-full"
+                    onClick={() =>
+                      setActiveReviewIndex((prev) => (prev - 1 + reviews.length) % reviews.length)
+                    }
+                    aria-label={dir === "rtl" ? "التالي" : "Previous"}
+                  >
+                    {dir === "rtl" ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 rounded-full"
+                    onClick={() => setActiveReviewIndex((prev) => (prev + 1) % reviews.length)}
+                    aria-label={dir === "rtl" ? "السابق" : "Next"}
+                  >
+                    {dir === "rtl" ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  </Button>
+                </div>
+              ) : null}
+              {activeReview ? (
+                <>
+                  <div className="rounded-xl border p-4 md:hidden">
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="truncate font-medium text-foreground">{activeReview.name}</p>
                       <div className="flex items-center gap-1">
                         {[1, 2, 3, 4, 5].map((v) => (
                           <Star
                             key={v}
-                            className={`h-4 w-4 ${v <= r.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground"}`}
+                            className={`h-4 w-4 ${v <= activeReview.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground"}`}
                           />
                         ))}
                       </div>
                     </div>
-                    <p className="text-sm text-muted-foreground">{r.comment}</p>
+                    <p className="text-sm text-muted-foreground">{activeReview.comment}</p>
                   </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
+                  <div className="hidden gap-3 md:grid md:grid-cols-2 lg:hidden">
+                    {activeReviewsMedium.map((r) => (
+                      <div key={r.id} className="rounded-xl border p-4">
+                        <div className="mb-2 flex items-center justify-between">
+                          <p className="truncate font-medium text-foreground">{r.name}</p>
+                          <div className="flex items-center gap-1">
+                            {[1, 2, 3, 4, 5].map((v) => (
+                              <Star
+                                key={v}
+                                className={`h-4 w-4 ${v <= r.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground"}`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        <p className="line-clamp-3 text-sm text-muted-foreground">{r.comment}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="hidden gap-3 lg:grid lg:grid-cols-3">
+                    {activeReviewsDesktop.map((r) => (
+                      <div key={r.id} className="rounded-xl border p-4">
+                        <div className="mb-2 flex items-center justify-between">
+                          <p className="truncate font-medium text-foreground">{r.name}</p>
+                          <div className="flex items-center gap-1">
+                            {[1, 2, 3, 4, 5].map((v) => (
+                              <Star
+                                key={v}
+                                className={`h-4 w-4 ${v <= r.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground"}`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        <p className="line-clamp-3 text-sm text-muted-foreground">{r.comment}</p>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : null}
+            </div>
+          )}
         </div>
       </div>
     </section>

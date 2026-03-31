@@ -199,7 +199,8 @@ export function BookingDialog({ room, open, onOpenChange }: BookingDialogProps) 
                     value={guestPhone}
                     onChange={(e) => setGuestPhone(e.target.value)}
                     placeholder="+966 5XX XXX XXXX"
-                    className="border-0 shadow-none focus-visible:ring-0"
+                    dir="ltr"
+                    className="border-0 shadow-none focus-visible:ring-0 text-left"
                   />
                 </div>
               </div>
