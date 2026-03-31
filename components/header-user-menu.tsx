@@ -64,7 +64,7 @@ export function HeaderUserMenu({ showSolidNav }: HeaderUserMenuProps) {
             <User className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-[12rem]" dir={dir}>
+        <DropdownMenuContent align="center" side="bottom" sideOffset={8} className="min-w-[12rem]" dir={dir}>
           <DropdownMenuLabel className="font-normal text-muted-foreground text-xs">
             {t("nav.guestPrompt")}
           </DropdownMenuLabel>
@@ -105,7 +105,7 @@ export function HeaderUserMenu({ showSolidNav }: HeaderUserMenuProps) {
           </span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[16rem]" dir={dir}>
+      <DropdownMenuContent align="center" side="bottom" sideOffset={8} className="min-w-[16rem]" dir={dir}>
         <DropdownMenuLabel className="space-y-1 font-normal">
           {user.fullName ? <p className="text-sm font-semibold text-foreground">{user.fullName}</p> : null}
           <p className="truncate text-xs text-muted-foreground">{user.email}</p>

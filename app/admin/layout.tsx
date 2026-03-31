@@ -247,7 +247,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       {/* Mobile: show "use desktop" message only */}
       <div
         className={cn(
-          "flex min-h-screen w-full flex-col items-center justify-center gap-6 bg-background p-6 text-center md:hidden"
+          "flex min-h-screen w-full flex-col items-center justify-center gap-6 bg-background p-6 text-center md:hidden print:hidden"
         )}
         dir={dir}
       >
@@ -263,75 +263,77 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       {/* Desktop: sidebar + main content */}
       <div
         className={cn(
-          "hidden min-h-screen w-full items-stretch bg-background md:flex",
+          "hidden min-h-screen w-full items-stretch bg-background md:flex print:flex",
           dir === "rtl" && "flex-row-reverse"
         )}
         dir={dir}
       >
-        <Sidebar open={open} setOpen={setOpen}>
-          <SidebarBody className="flex min-h-screen flex-col justify-between gap-6 bg-background dark:bg-background">
-            <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden min-h-0">
-              <AdminSidebarLogo />
-              <div className="mt-6 flex flex-col gap-1">
-                {mainLinks.map((link) => (
-                  <SidebarLink
-                    key={link.href}
-                    link={link}
-                    className={cn(
-                      pathname === link.href &&
-                        "bg-stone-200/80 text-foreground dark:bg-stone-700/50 dark:text-foreground"
-                    )}
-                    onClick={() => setOpen(false)}
-                  />
-                ))}
+        <div className="print:hidden">
+          <Sidebar open={open} setOpen={setOpen}>
+            <SidebarBody className="flex min-h-screen flex-col justify-between gap-6 bg-background dark:bg-background">
+              <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden min-h-0">
+                <AdminSidebarLogo />
+                <div className="mt-6 flex flex-col gap-1">
+                  {mainLinks.map((link) => (
+                    <SidebarLink
+                      key={link.href}
+                      link={link}
+                      className={cn(
+                        pathname === link.href &&
+                          "bg-stone-200/80 text-foreground dark:bg-stone-700/50 dark:text-foreground"
+                      )}
+                      onClick={() => setOpen(false)}
+                    />
+                  ))}
+                  <button
+                    type="button"
+                    className="flex items-center justify-start gap-3 py-2 px-2 rounded-lg min-h-[2.5rem] w-full text-left text-neutral-700 dark:text-neutral-200 hover:bg-stone-200/80 dark:hover:bg-stone-700/50"
+                    onClick={() => {
+                      const next = language === "ar" ? "en" : "ar";
+                      setLanguage(next);
+                      if (typeof window !== "undefined") window.localStorage.setItem("admin-lang", next);
+                    }}
+                  >
+                    <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg [&_svg]:size-5">
+                      <Languages className={iconClass} />
+                    </span>
+                    <motion.span
+                      animate={{ display: open ? "inline-block" : "none", opacity: open ? 1 : 0 }}
+                      className="text-sm whitespace-pre overflow-hidden"
+                    >
+                      {language === "ar" ? "English" : "العربية"}
+                    </motion.span>
+                  </button>
+                  <SidebarLink link={notificationsLink} onClick={() => setOpen(false)} />
+                </div>
+              </div>
+              <div className="border-t border-stone-200/80 dark:border-neutral-700 pt-4 flex-shrink-0">
                 <button
                   type="button"
-                  className="flex items-center justify-start gap-3 py-2 px-2 rounded-lg min-h-[2.5rem] w-full text-left text-neutral-700 dark:text-neutral-200 hover:bg-stone-200/80 dark:hover:bg-stone-700/50"
+                  className="flex w-full items-center justify-start gap-3 py-2 px-2 rounded-lg min-h-[2.5rem] text-neutral-700 dark:text-neutral-200 hover:bg-stone-200/80 dark:hover:bg-stone-700/50 text-sm"
                   onClick={() => {
-                    const next = language === "ar" ? "en" : "ar";
-                    setLanguage(next);
-                    if (typeof window !== "undefined") window.localStorage.setItem("admin-lang", next);
+                    if (typeof window !== "undefined") {
+                      window.localStorage.removeItem("admin-auth");
+                      router.push("/admin/login");
+                    }
                   }}
                 >
                   <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg [&_svg]:size-5">
-                    <Languages className={iconClass} />
+                    <LogOut className={iconClass} />
                   </span>
                   <motion.span
                     animate={{ display: open ? "inline-block" : "none", opacity: open ? 1 : 0 }}
                     className="text-sm whitespace-pre overflow-hidden"
                   >
-                    {language === "ar" ? "English" : "العربية"}
+                    {t("admin.logout")}
                   </motion.span>
                 </button>
-                <SidebarLink link={notificationsLink} onClick={() => setOpen(false)} />
               </div>
-            </div>
-            <div className="border-t border-stone-200/80 dark:border-neutral-700 pt-4 flex-shrink-0">
-              <button
-                type="button"
-                className="flex w-full items-center justify-start gap-3 py-2 px-2 rounded-lg min-h-[2.5rem] text-neutral-700 dark:text-neutral-200 hover:bg-stone-200/80 dark:hover:bg-stone-700/50 text-sm"
-                onClick={() => {
-                  if (typeof window !== "undefined") {
-                    window.localStorage.removeItem("admin-auth");
-                    router.push("/admin/login");
-                  }
-                }}
-              >
-                <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg [&_svg]:size-5">
-                  <LogOut className={iconClass} />
-                </span>
-                <motion.span
-                  animate={{ display: open ? "inline-block" : "none", opacity: open ? 1 : 0 }}
-                  className="text-sm whitespace-pre overflow-hidden"
-                >
-                  {t("admin.logout")}
-                </motion.span>
-              </button>
-            </div>
-          </SidebarBody>
-        </Sidebar>
+            </SidebarBody>
+          </Sidebar>
+        </div>
         <main
-          className="flex min-w-0 flex-1 flex-col overflow-auto bg-background p-4 lg:p-6"
+          className="flex min-w-0 flex-1 flex-col overflow-auto bg-background p-4 lg:p-6 print:p-0"
           aria-label="Main content"
         >
           {pathname !== "/admin/login" && (

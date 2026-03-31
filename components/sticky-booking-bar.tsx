@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Phone, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
@@ -33,10 +34,10 @@ export function StickyBookingBar() {
             </a>
           </Button>
           <Button size="sm" asChild>
-            <a href="#rooms">
+            <Link href="/rooms">
               <CalendarDays className="me-1 h-4 w-4" />
               {t("hero.cta")}
-            </a>
+            </Link>
           </Button>
         </div>
       </div>

@@ -9,6 +9,7 @@ import {
   Search,
   ArrowUpRight,
   Inbox,
+  Printer,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -66,9 +67,22 @@ export default function AdminDashboard() {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5);
   const roomStatus = data.rooms;
+  const printLabel = language === "ar" ? "طباعة / حفظ PDF" : "Print / Save PDF";
+
+  const handlePrint = () => {
+    if (typeof window === "undefined") return;
+    window.print();
+  };
 
   return (
     <div className="space-y-6">
+      <div className="mt-2 flex items-center justify-end print:hidden">
+        <Button variant="outline" onClick={handlePrint}>
+          <Printer className="me-2 h-4 w-4" />
+          {printLabel}
+        </Button>
+      </div>
+
       {/* Stats Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
