@@ -35,8 +35,8 @@ function RoomDetailsContent({ room }: { room: Room }) {
     <div className="min-h-screen bg-background" dir={dir}>
       <Header />
 
-      <main className="pb-20 pt-32">
-        <div className="mx-auto max-w-7xl px-6 lg:px-12">
+      <main className="pb-20 pt-24 sm:pt-28 lg:pt-32">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-12">
           {/* Back link */}
           <div className="mb-6">
             <Link
@@ -57,14 +57,14 @@ function RoomDetailsContent({ room }: { room: Room }) {
             </Link>
           </div>
 
-          <div className="grid gap-10 lg:grid-cols-[1.7fr,1fr]">
+          <div className="grid gap-6 lg:gap-10 lg:grid-cols-[1.7fr,1fr]">
             {/* Gallery */}
             <section>
-              <div className="overflow-hidden rounded-3xl border border-border bg-card">
+              <div className="overflow-hidden rounded-2xl border border-border bg-card sm:rounded-3xl">
                 <img
                   src={activeImage}
                   alt={name}
-                  className="h-[360px] w-full object-cover md:h-[440px]"
+                  className="h-[240px] w-full object-cover sm:h-[320px] md:h-[440px]"
                 />
               </div>
 
@@ -91,7 +91,7 @@ function RoomDetailsContent({ room }: { room: Room }) {
             </section>
 
             {/* Details & booking */}
-            <section className="space-y-6 rounded-3xl border border-border bg-card p-6 shadow-sm">
+            <section className="space-y-6 rounded-2xl border border-border bg-card p-4 shadow-sm sm:rounded-3xl sm:p-6">
               <div className="space-y-2">
                 <h1 className="text-2xl font-semibold text-foreground md:text-3xl">
                   {name}
@@ -205,8 +205,18 @@ export default function RoomDetailsPage({
 }) {
   const resolved = use(params);
   const id = typeof resolved.id === "string" ? resolved.id : "";
-  const rooms = usePublicRooms();
+  const { rooms, loading } = usePublicRooms();
   const room = rooms.find((r) => r.id === id);
+
+  if (loading) {
+    return (
+      <I18nProvider>
+        <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6 text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+        </div>
+      </I18nProvider>
+    );
+  }
 
   if (!room) {
     return (

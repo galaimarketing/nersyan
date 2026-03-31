@@ -15,7 +15,7 @@ import { Footer } from "@/components/footer";
 
 function RoomsPageContent() {
   const { t, language, dir } = useI18n();
-  const rooms = usePublicRooms();
+  const { rooms } = usePublicRooms();
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [capacityFilter, setCapacityFilter] = useState<number | null>(null);

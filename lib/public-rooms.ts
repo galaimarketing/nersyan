@@ -41,8 +41,9 @@ export function getPublicRooms(): Room[] {
   return data.rooms.map((ar) => mapAdminRoomToRoom(ar, data));
 }
 
-export function usePublicRooms(): Room[] {
+export function usePublicRooms(): { rooms: Room[]; loading: boolean } {
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = () => {
@@ -51,8 +52,12 @@ export function usePublicRooms(): Room[] {
         .then((api: Room[] | null) => {
           if (Array.isArray(api) && api.length >= 0) setRooms(api);
           else setRooms(getPublicRooms());
+          setLoading(false);
         })
-        .catch(() => setRooms(getPublicRooms()));
+        .catch(() => {
+          setRooms(getPublicRooms());
+          setLoading(false);
+        });
     };
     load();
     const onStorage = () => setRooms(getPublicRooms());
@@ -60,5 +65,5 @@ export function usePublicRooms(): Room[] {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  return rooms;
+  return { rooms, loading };
 }

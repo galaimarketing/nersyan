@@ -12,7 +12,7 @@ import type { Room } from "@/lib/rooms-data";
 
 export function RoomsSection() {
   const { t, language, dir } = useI18n();
-  const rooms = usePublicRooms();
+  const { rooms } = usePublicRooms();
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
 

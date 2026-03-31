@@ -31,6 +31,7 @@ interface Room {
   nameEn: string;
   price: number;
   image: string;
+  capacity?: number;
 }
 
 interface BookingDialogProps {
@@ -51,7 +52,8 @@ export function BookingDialog({ room, open, onOpenChange }: BookingDialogProps) 
   const { t, language, dir } = useI18n();
   const router = useRouter();
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>();
-  const [guests, setGuests] = React.useState(1);
+  const maxGuests = Math.max(1, room.capacity ?? 1);
+  const [guestsInput, setGuestsInput] = React.useState("1");
   const [guestName, setGuestName] = React.useState("");
   const [guestPhone, setGuestPhone] = React.useState("");
   const [guestEmail, setGuestEmail] = React.useState("");
@@ -62,8 +64,18 @@ export function BookingDialog({ room, open, onOpenChange }: BookingDialogProps) 
     setTaxRatePercent(settings.taxRatePercent);
   }, [open]);
 
+  React.useEffect(() => {
+    if (!open) return;
+    setGuestsInput("1");
+  }, [open, room.id]);
+
   const locale = language === "ar" ? ar : enUS;
   const roomName = language === "ar" ? room.nameAr : room.nameEn;
+  const parsedGuests = Number.parseInt(guestsInput, 10);
+  const guests =
+    Number.isFinite(parsedGuests) && parsedGuests > 0
+      ? Math.min(parsedGuests, maxGuests)
+      : 1;
 
   const rawNights =
     dateRange?.from && dateRange?.to
@@ -169,9 +181,15 @@ export function BookingDialog({ room, open, onOpenChange }: BookingDialogProps) 
                 <Input
                   type="number"
                   min={1}
-                  max={6}
-                  value={guests}
-                  onChange={(e) => setGuests(parseInt(e.target.value) || 1)}
+                  max={maxGuests}
+                  value={guestsInput}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    if (next === "" || /^\d+$/.test(next)) {
+                      setGuestsInput(next);
+                    }
+                  }}
+                  onBlur={() => setGuestsInput(String(guests))}
                   className="w-24"
                 />
               </div>
