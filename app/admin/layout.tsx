@@ -263,13 +263,13 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       {/* Desktop: sidebar + main content */}
       <div
         className={cn(
-          "hidden min-h-screen w-full bg-background md:flex",
+          "hidden min-h-screen w-full items-stretch bg-background md:flex",
           dir === "rtl" && "flex-row-reverse"
         )}
         dir={dir}
       >
         <Sidebar open={open} setOpen={setOpen}>
-          <SidebarBody className="flex h-full flex-col justify-between gap-6 bg-background dark:bg-background">
+          <SidebarBody className="flex min-h-screen flex-col justify-between gap-6 bg-background dark:bg-background">
             <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden min-h-0">
               <AdminSidebarLogo />
               <div className="mt-6 flex flex-col gap-1">

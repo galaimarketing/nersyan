@@ -89,10 +89,10 @@ export const DesktopSidebar = ({
   return (
     <motion.div
       className={cn(
-        "relative sticky top-0 h-[100dvh] py-4 hidden md:flex md:flex-col flex-shrink-0 overflow-visible",
+        "relative py-4 hidden md:flex md:flex-col flex-shrink-0 overflow-visible min-h-screen self-stretch",
         "bg-background shadow-[8px_0_24px_rgba(0,0,0,0.08)]",
         "dark:bg-background dark:shadow-[8px_0_24px_rgba(0,0,0,0.38)]",
-        "min-w-[72px] self-start",
+        "min-w-[72px]",
         className
       )}
       animate={{
