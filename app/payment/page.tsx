@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { I18nProvider, useI18n } from "@/lib/i18n";
 import { CurrencySymbol } from "@/components/currency-symbol";
-import { addCustomerBookingToStore } from "@/lib/admin-store";
 
 interface PendingBooking {
   roomId: string;
@@ -132,7 +131,11 @@ function PaymentContent() {
           }
           payload.status = "pending";
           payload.paymentStatus = "pending";
-          await addCustomerBookingToStore(payload);
+          await fetch("/api/bookings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ payload }),
+          });
         } catch {
           // ignore
         }

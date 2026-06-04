@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AdminBooking } from "@/lib/admin-store";
 import { useAppUser } from "@/lib/use-app-user";
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 
 function MyBookingsContent() {
   const { t, language, dir } = useI18n();
@@ -29,24 +30,40 @@ function MyBookingsContent() {
     if (authLoading) return;
     const u = user;
     if (!u?.email) return;
+    const email = u.email;
+    const fullName = u.fullName ?? null;
 
     async function load() {
       try {
-        const res = await fetch("/api/admin/data", { cache: "no-store" });
+        // Server returns ONLY this user's bookings (no full-dataset download).
+        // Prefer a verified Supabase token; fall back to the email for the
+        // legacy localStorage login.
+        const headers: Record<string, string> = {};
+        let url = `/api/my-bookings?email=${encodeURIComponent(email)}`;
+        try {
+          const supabase = getSupabaseBrowser();
+          const token = supabase
+            ? (await supabase.auth.getSession()).data.session?.access_token
+            : null;
+          if (token) {
+            headers.Authorization = `Bearer ${token}`;
+            url = "/api/my-bookings";
+          }
+        } catch {
+          // ignore — fall back to email param
+        }
+
+        const res = await fetch(url, { cache: "no-store", headers });
         if (!res.ok) {
           setBookings([]);
           return;
         }
-        const data = (await res.json()) as { bookings?: AdminBooking[]; guests?: { id: string; name: string }[] };
+        const data = (await res.json()) as { bookings?: AdminBooking[] };
+        const list = data.bookings ?? [];
+        if (list.length > 0) setGuestName(list[0].guestName);
+        else setGuestName(fullName);
 
-        const email = u.email;
-
-        // Filter by signed-in user email (stable across refresh)
-        const filtered = (data.bookings ?? []).filter((b) => (email ? b.email === email : true));
-        if (filtered.length > 0) setGuestName(filtered[0].guestName);
-        else setGuestName(u.fullName ?? null);
-
-        setBookings(filtered);
+        setBookings(list);
       } catch {
         setBookings([]);
       }
