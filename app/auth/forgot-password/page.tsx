@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Mail } from "lucide-react";
 import { I18nProvider, useI18n, LanguageToggle } from "@/lib/i18n";
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 
 function ForgotPasswordForm() {
   const { t, language, dir } = useI18n();
@@ -15,13 +16,23 @@ function ForgotPasswordForm() {
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const supabase = getSupabaseBrowser();
+      if (supabase && email.trim()) {
+        const redirectTo =
+          typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined;
+        // Always show "sent" regardless of whether the email exists (no account enumeration).
+        await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+      }
+    } catch {
+      // ignore — still show the neutral "sent" confirmation
+    } finally {
       setSent(true);
       setLoading(false);
-    }, 800);
+    }
   };
 
   return (
