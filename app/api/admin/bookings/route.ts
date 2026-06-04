@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminData, hasDatabase, setAdminData } from "@/lib/db";
 import { defaultAdminData, generateBookingId, generateId, normalizeAdminData } from "@/lib/admin-store";
+import { isAuthedRequest } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,9 @@ type IncomingBooking = {
 };
 
 export async function POST(request: Request) {
+  if (!(await isAuthedRequest(request))) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
   if (!hasDatabase()) {
     return NextResponse.json({ ok: false, error: "No database configured" }, { status: 503 });
   }

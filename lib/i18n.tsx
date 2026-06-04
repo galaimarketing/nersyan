@@ -431,7 +431,7 @@ const translations: Translations = {
   "admin.incorrectCredentials": { ar: "اسم المستخدم أو كلمة المرور غير صحيحة.", en: "Incorrect username or password." },
   "admin.loggingIn": { ar: "جاري تسجيل الدخول...", en: "Logging in..." },
   "admin.loginButton": { ar: "تسجيل الدخول", en: "Login" },
-  "admin.credentialsHint": { ar: "اسم المستخدم: admin — كلمة المرور: admin", en: "Username: admin — Password: admin" },
+  "admin.credentialsHint": { ar: "أدخل بيانات الدخول الخاصة بلوحة التحكم.", en: "Enter your admin dashboard credentials." },
   "admin.useDesktopOnly": { ar: "افتح لوحة التحكم على جهاز كمبيوتر", en: "Open the dashboard on a computer" },
   "admin.useDesktopOnlyHint": { ar: "لوحة الإدارة متاحة على الشاشات الأكبر فقط.", en: "The admin dashboard is only available on larger screens." },
 };

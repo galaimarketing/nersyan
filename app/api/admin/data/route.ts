@@ -8,6 +8,7 @@ import {
   reconcileRoomDiscountExpiries,
   reconcileRoomStatusesWithBookings,
 } from "@/lib/admin-store";
+import { isAuthedRequest } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,9 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
+  if (!(await isAuthedRequest(request))) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
   if (!hasDatabase()) {
     return NextResponse.json({ ok: false, error: "No database configured" }, { status: 503 });
   }

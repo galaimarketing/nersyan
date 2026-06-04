@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { put } from "@vercel/blob";
 import { getSupabaseAdmin, hasSupabaseStorage, getSupabaseStorageBucket } from "@/lib/supabase-server";
+import { isAuthedRequest } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,9 @@ export async function GET() {
  * Returns { ok: true, files: [{ name, url, type }] }.
  */
 export async function POST(request: Request) {
+  if (!(await isAuthedRequest(request))) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
   let formData: FormData;
   try {
     formData = await request.formData();
