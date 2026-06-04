@@ -12,7 +12,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { I18nProvider, useI18n, LanguageToggle } from "@/lib/i18n";
 import { dispatchNersianAuthChanged } from "@/lib/use-app-user";
-import { isLikelyRealEmail, registerLocalAccount } from "@/lib/local-auth";
+import { isLikelyRealEmail } from "@/lib/local-auth";
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 
 function SignUpForm() {
   const { t, language, dir } = useI18n();
@@ -27,7 +28,7 @@ function SignUpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -45,6 +46,15 @@ function SignUpForm() {
         language === "ar"
           ? "يرجى إدخال بريد إلكتروني حقيقي وصالح."
           : "Please enter a real, valid email address."
+      );
+      return;
+    }
+
+    if (password.length < 8) {
+      setError(
+        language === "ar"
+          ? "كلمة المرور يجب أن تكون 8 أحرف على الأقل."
+          : "Password must be at least 8 characters."
       );
       return;
     }
@@ -67,57 +77,59 @@ function SignUpForm() {
       return;
     }
 
-    setLoading(true);
+    const supabase = getSupabaseBrowser();
+    if (!supabase) {
+      setError(
+        language === "ar"
+          ? "خدمة إنشاء الحساب غير مهيأة حالياً. حاول لاحقاً."
+          : "Sign-up is not configured right now. Please try later."
+      );
+      return;
+    }
 
+    setLoading(true);
     try {
-      const register = registerLocalAccount({
-        fullName: fullName.trim(),
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
+        options: { data: { full_name: fullName.trim(), name: fullName.trim() } },
       });
-      if (!register.ok) {
-        if (register.error === "already_exists") {
+
+      if (signUpError) {
+        const msg = signUpError.message.toLowerCase();
+        if (msg.includes("already") || msg.includes("registered")) {
           setError(
             language === "ar"
               ? "هذا البريد مسجل بالفعل. قم بتسجيل الدخول."
               : "This email is already registered. Please sign in."
           );
-          return;
-        }
-        if (register.error === "weak_password") {
+        } else {
           setError(
-            language === "ar"
-              ? "كلمة المرور يجب أن تكون 8 أحرف على الأقل."
-              : "Password must be at least 8 characters."
+            language === "ar" ? "تعذر إنشاء الحساب. حاول مرة أخرى." : "Could not create the account. Please try again."
           );
-          return;
         }
+        return;
+      }
+
+      dispatchNersianAuthChanged();
+
+      // With "Confirm email" disabled in Supabase a session is created immediately.
+      if (!data.session) {
         setError(
           language === "ar"
-            ? "البريد الإلكتروني غير صالح."
-            : "Invalid email address."
+            ? "تم إنشاء الحساب. يرجى تأكيد بريدك الإلكتروني ثم تسجيل الدخول."
+            : "Account created. Please confirm your email, then sign in."
         );
         return;
       }
 
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(
-          "nersian-user",
-          JSON.stringify({ fullName: fullName.trim(), email: email.trim().toLowerCase() })
-        );
-        dispatchNersianAuthChanged();
-      }
-
-      if (typeof window !== "undefined") {
-        window.alert(
-          language === "ar"
-            ? "تم إنشاء الحساب بنجاح."
-            : "Account created successfully."
-        );
-      }
-
       const next = searchParams.get("next") || "/";
       router.push(next);
+      router.refresh();
+    } catch {
+      setError(
+        language === "ar" ? "تعذر إنشاء الحساب. حاول مرة أخرى." : "Could not create the account. Please try again."
+      );
     } finally {
       setLoading(false);
     }

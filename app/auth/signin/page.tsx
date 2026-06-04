@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { I18nProvider, useI18n, LanguageToggle } from "@/lib/i18n";
 import { dispatchNersianAuthChanged } from "@/lib/use-app-user";
-import { authenticateLocalAccount } from "@/lib/local-auth";
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 
 function SignInForm() {
   const { t, language, dir } = useI18n();
@@ -25,7 +25,7 @@ function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -38,37 +38,41 @@ function SignInForm() {
       return;
     }
 
-    setLoading(true);
+    const supabase = getSupabaseBrowser();
+    if (!supabase) {
+      setError(
+        language === "ar"
+          ? "خدمة الدخول غير مهيأة حالياً. حاول لاحقاً."
+          : "Sign-in is not configured right now. Please try later."
+      );
+      return;
+    }
 
+    setLoading(true);
     try {
-      const account = authenticateLocalAccount(email, password);
-      if (!account) {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (signInError) {
         setError(
           language === "ar"
-            ? "البريد الإلكتروني أو كلمة المرور غير صحيحة، أو الحساب غير مسجل."
-            : "Email or password is incorrect, or this account is not registered."
+            ? "البريد الإلكتروني أو كلمة المرور غير صحيحة."
+            : "Email or password is incorrect."
         );
         return;
       }
 
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(
-          "nersian-user",
-          JSON.stringify({ email: account.email, fullName: account.fullName, rememberMe })
-        );
-        dispatchNersianAuthChanged();
-      }
-
-      if (typeof window !== "undefined") {
-        window.alert(
-          language === "ar"
-            ? "تم تسجيل الدخول بنجاح."
-            : "Signed in successfully."
-        );
-      }
+      // useAppUser persists the session; nudge listeners to refresh immediately.
+      dispatchNersianAuthChanged();
 
       const next = searchParams.get("next") || "/";
       router.push(next);
+      router.refresh();
+    } catch {
+      setError(
+        language === "ar" ? "تعذر تسجيل الدخول. حاول مرة أخرى." : "Could not sign in. Please try again."
+      );
     } finally {
       setLoading(false);
     }
