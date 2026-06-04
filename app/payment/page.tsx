@@ -231,11 +231,15 @@ function PaymentContent() {
           <p className="text-center text-xs text-muted-foreground">
             {moyasarMode === "live"
               ? language === "ar"
-                ? "تأكد في لوحة Moyasar أن حسابك مفعّل للدفع الحي، وأن نطاق موقعك مسموح به."
-                : "Ensure your Moyasar account is live-enabled and your domain is allowed in the Moyasar dashboard."
-              : language === "ar"
-                ? "سيتم فتح صفحة دفع Moyasar في نفس النافذة."
-                : "Moyasar checkout opens in this window."}
+                ? "وضع الدفع الحي: المفتاح sk_live_ مستخدم. تأكد في لوحة Moyasar أن نطاق موقعك مسموح به."
+                : "Live mode: your server uses a sk_live_ key. In the Moyasar dashboard, allow your site domain if required."
+              : moyasarMode === "test"
+                ? language === "ar"
+                  ? "وضع التجربة: المفتاح sk_test_ لا يسمح بالخصومات الحقيقية. للإنتاج ضع MOYASAR_SECRET_KEY=sk_live_… في بيئة الاستضافة."
+                  : "Test mode (sk_test_): no real charges. For live payments set MOYASAR_SECRET_KEY to sk_live_… on your host."
+                : language === "ar"
+                  ? "أضف MOYASAR_SECRET_KEY في الخادم. سيتم فتح صفحة دفع Moyasar في نفس النافذة."
+                  : "Set MOYASAR_SECRET_KEY on the server. Moyasar checkout opens in this window."}
           </p>
 
           <div className="text-center">

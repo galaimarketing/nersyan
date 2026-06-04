@@ -159,12 +159,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     setHasNewBookingsDot(seen !== newestBookingId);
   }, [data.bookings, pathname]);
 
-  useEffect(() => {
-    if (pathname === "/admin/login") return;
-    if (typeof window !== "undefined" && window.localStorage.getItem("admin-auth") !== "true") {
-      router.replace("/admin/login");
-    }
-  }, [pathname, router]);
+  // Admin access is enforced server-side by middleware.ts (HttpOnly session
+  // cookie). No client-side localStorage gate is needed here anymore.
 
   const iconClass = "text-neutral-700 dark:text-neutral-200";
   const iconWithBadge = (Icon: React.ComponentType<{ className?: string }>, count: number) => (
@@ -311,11 +307,17 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 <button
                   type="button"
                   className="flex w-full items-center justify-start gap-3 py-2 px-2 rounded-lg min-h-[2.5rem] text-neutral-700 dark:text-neutral-200 hover:bg-stone-200/80 dark:hover:bg-stone-700/50 text-sm"
-                  onClick={() => {
+                  onClick={async () => {
+                    try {
+                      await fetch("/api/admin/logout", { method: "POST" });
+                    } catch {
+                      // ignore — still send the user to the login page
+                    }
                     if (typeof window !== "undefined") {
                       window.localStorage.removeItem("admin-auth");
-                      router.push("/admin/login");
                     }
+                    router.push("/admin/login");
+                    router.refresh();
                   }}
                 >
                   <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg [&_svg]:size-5">

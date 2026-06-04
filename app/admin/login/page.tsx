@@ -15,20 +15,34 @@ export default function AdminLoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setLoading(true);
 
-    if (username === "admin" && password === "admin") {
-      setLoading(true);
-      if (typeof window !== "undefined") {
-        localStorage.setItem("admin-auth", "true");
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (res.ok) {
+        // Clean up the old client-side flag if it lingers from a previous version.
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("admin-auth");
+        }
+        router.push("/admin");
+        router.refresh();
+        return;
       }
-      router.push("/admin");
-      return;
-    }
 
-    setError(t("admin.incorrectCredentials"));
+      setError(t("admin.incorrectCredentials"));
+    } catch {
+      setError(t("admin.incorrectCredentials"));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -42,12 +56,13 @@ export default function AdminLoginPage() {
         </p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="username">{t("admin.username")}</Label>
+            <Label htmlFor="username">{t("admin.email")}</Label>
             <Input
               id="username"
+              type="email"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="admin"
+              placeholder="admin@nersyantaiba.com"
               autoComplete="username"
               required
             />

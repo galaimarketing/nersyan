@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminData, setAdminData } from "@/lib/db";
 import { mergeCustomerBookingIntoAdminData } from "@/lib/admin-store";
+import { getPublicOrigin } from "@/lib/public-origin";
 
 type InvoiceBody = {
   payload: {
@@ -77,8 +78,7 @@ export async function POST(req: Request) {
 
   const booking = merged.booking;
 
-  const url = new URL(req.url);
-  const origin = url.origin;
+  const origin = getPublicOrigin(req);
   const amountHalalah = toAmountHalalah(booking.amount ?? payload.total ?? 0);
 
   const auth = Buffer.from(`${secretKey}:`).toString("base64");
@@ -95,7 +95,7 @@ export async function POST(req: Request) {
       callback_url: `${origin}/api/moyasar/invoice-webhook`,
       success_url: `${origin}/api/moyasar/invoice-success?bookingId=${encodeURIComponent(booking.id)}`,
       back_url: `${origin}/payment`,
-      metadata: { bookingId: booking.id },
+      metadata: { bookingId: String(booking.id) },
     }),
   });
 
