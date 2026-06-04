@@ -12,7 +12,13 @@ import { isAuthedRequest } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
+  // Admin-only: this returns the full dataset (all bookings + guest PII).
+  // Customers use /api/my-bookings (their own bookings only); the public site
+  // reads rooms via /api/rooms.
+  if (!(await isAuthedRequest(request))) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
   if (!hasDatabase()) {
     return NextResponse.json(normalizeAndReconcileAdminData(defaultAdminData), {
       headers: { "Cache-Control": "no-store, max-age=0" },
