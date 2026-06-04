@@ -3,6 +3,7 @@ import Script from 'next/script'
 import { IBM_Plex_Sans_Arabic } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { SeoSettings } from '@/components/seo-settings'
+import { WhatsAppButton } from '@/components/whatsapp-button'
 import { getSettings } from '@/lib/db'
 import { defaultAppSettings } from '@/lib/settings-types'
 import './globals.css'
@@ -123,6 +124,7 @@ export default function RootLayout({
         <Script src="https://player.vimeo.com/api/player.js" strategy="beforeInteractive" />
         <SeoSettings />
         {children}
+        <WhatsAppButton />
         <Analytics />
       </body>
     </html>

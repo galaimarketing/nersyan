@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Wifi, Wind, Car, Users, Maximize, BedDouble, Bath, ChevronLeft, ChevronRight } from "lucide-react";
+import { Wifi, Wind, Car, Users, Maximize, BedDouble, Bath, ChevronLeft, ChevronRight, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -182,7 +182,13 @@ export function RoomCard({ room, onBook }: RoomCardProps) {
             {name}
           </h3>
         </Link>
-        <p className="mb-4 line-clamp-2 text-sm text-muted-foreground">{description}</p>
+        <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">{description}</p>
+
+        {/* Proximity to Al-Masjid an-Nabawi — the key selling point */}
+        <div className="mb-4 inline-flex items-center gap-1 rounded-full bg-[var(--ring)]/10 px-2.5 py-1 text-xs font-medium text-[var(--ring)]">
+          <MapPin className="h-3.5 w-3.5" />
+          <span>{language === "ar" ? "قريب من الحرم النبوي" : "Near Al-Masjid an-Nabawi"}</span>
+        </div>
 
         {/* Room Info */}
         <div className="mb-4 flex items-center gap-4 text-sm text-muted-foreground">
