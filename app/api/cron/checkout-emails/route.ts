@@ -20,12 +20,15 @@ function todayInRiyadh(): string {
  * Protected by CRON_SECRET: Vercel Cron sends `Authorization: Bearer <secret>`.
  */
 export async function GET(req: Request) {
+  // Require a configured secret — never run open. Vercel Cron sends it
+  // automatically as `Authorization: Bearer <CRON_SECRET>` when the env is set.
   const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const auth = req.headers.get("authorization") ?? "";
-    if (auth !== `Bearer ${secret}`) {
-      return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-    }
+  if (!secret) {
+    return NextResponse.json({ ok: false, error: "cron not configured" }, { status: 503 });
+  }
+  const auth = req.headers.get("authorization") ?? "";
+  if (auth !== `Bearer ${secret}`) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
   const data = await getAdminData();
