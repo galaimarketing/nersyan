@@ -11,6 +11,16 @@ function getEnv(key: string): string | undefined {
 
 const FROM = getEnv("EMAIL_FROM") || "Nersyan Taiba <noreply@nersyantaiba.com>";
 const RECEPTION_EMAIL = getEnv("RECEPTION_EMAIL") || "nt2030n@gmail.com";
+const SITE_URL = (getEnv("NEXT_PUBLIC_SITE_URL") || "https://www.nersyantaiba.com").replace(/\/+$/, "");
+const WHATSAPP = (getEnv("NEXT_PUBLIC_WHATSAPP_NUMBER") || "966508060816").replace(/[^0-9]/g, "");
+
+// Brand palette
+const BROWN = "#5b4636";
+const BROWN_DARK = "#4a3829";
+const GOLD = "#c8a96a";
+const CREAM = "#f4f1ec";
+const INK = "#2c2420";
+const MUTED = "#8a8178";
 
 export function getReceptionEmail(): string {
   return RECEPTION_EMAIL;
@@ -30,10 +40,7 @@ export async function sendEmail(opts: {
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         from: FROM,
         to,
@@ -62,89 +69,154 @@ export type BookingEmailData = {
   paymentStatus?: string;
 };
 
-function row(label: string, value: string): string {
-  return `<tr><td style="padding:6px 0;color:#9a9189;font-size:13px;">${label}</td><td style="padding:6px 0;color:#2c2420;font-size:14px;font-weight:600;text-align:end;">${value || "—"}</td></tr>`;
+function detailsTable(rows: Array<[string, string]>): string {
+  const body = rows
+    .map(
+      ([label, value], i) => `
+      <tr style="background:${i % 2 ? "#faf8f4" : "#ffffff"};">
+        <td style="padding:11px 16px;color:${MUTED};font-size:12px;border-bottom:1px solid #efe9e0;white-space:nowrap;">${label}</td>
+        <td style="padding:11px 16px;color:${INK};font-size:14px;font-weight:600;border-bottom:1px solid #efe9e0;text-align:end;">${value || "—"}</td>
+      </tr>`
+    )
+    .join("");
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #efe9e0;border-radius:12px;overflow:hidden;margin:6px 0 4px;">${body}</table>`;
 }
 
-function shell(inner: string): string {
-  return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f1ec;font-family:Arial,Helvetica,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f1ec;padding:24px 0;"><tr><td align="center">
-  <table role="presentation" width="100%" style="max-width:520px;background:#ffffff;border-radius:16px;overflow:hidden;">
-    <tr><td style="background:#5b4636;padding:24px;text-align:center;">
-      <div style="display:inline-block;width:44px;height:44px;line-height:44px;border-radius:50%;background:#fff;color:#5b4636;font-size:20px;font-weight:bold;">ن</div>
-      <div style="color:#fff;font-size:17px;font-weight:bold;margin-top:8px;">نرسيان طيبة · Nersyan Taiba</div>
+function button(href: string, label: string): string {
+  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px auto;"><tr><td style="border-radius:10px;background:${BROWN};">
+    <a href="${href}" style="display:inline-block;padding:14px 38px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:bold;border-radius:10px;">${label}</a>
+  </td></tr></table>`;
+}
+
+function shell(opts: { preheader: string; badge?: string; inner: string }): string {
+  return `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:${CREAM};font-family:'Segoe UI',Tahoma,Arial,Helvetica,sans-serif;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${opts.preheader}</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${CREAM};padding:28px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:540px;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 4px 24px rgba(74,56,41,0.10);">
+
+        <!-- Header -->
+        <tr><td style="background:${BROWN};background-image:linear-gradient(135deg,${BROWN},${BROWN_DARK});padding:30px 24px 26px;text-align:center;">
+          <div style="display:inline-block;width:54px;height:54px;line-height:54px;border-radius:50%;background:#ffffff;color:${BROWN};font-size:26px;font-weight:bold;">ن</div>
+          <div style="color:#ffffff;font-size:20px;font-weight:bold;letter-spacing:.3px;margin-top:12px;">نرسيان طيبة</div>
+          <div style="color:${GOLD};font-size:12px;font-weight:600;letter-spacing:1px;margin-top:2px;">NERSYAN TAIBA · المدينة المنورة</div>
+          ${opts.badge ? `<div style="margin-top:14px;">${opts.badge}</div>` : ""}
+        </td></tr>
+        <tr><td style="height:4px;background:${GOLD};"></td></tr>
+
+        <!-- Content -->
+        <tr><td style="padding:26px 26px 8px;">${opts.inner}</td></tr>
+
+        <!-- Footer -->
+        <tr><td style="background:${CREAM};padding:20px 24px;text-align:center;border-top:1px solid #ece5da;">
+          <div style="font-size:12px;color:${INK};font-weight:600;margin-bottom:6px;">نرسيان طيبة · Nersyan Taiba</div>
+          <div style="font-size:11px;color:${MUTED};line-height:1.8;">
+            المدينة المنورة، المملكة العربية السعودية<br>
+            <a href="https://wa.me/${WHATSAPP}" style="color:${BROWN};text-decoration:none;">واتساب · WhatsApp</a> &nbsp;·&nbsp;
+            <a href="${SITE_URL}" style="color:${BROWN};text-decoration:none;">nersyantaiba.com</a>
+          </div>
+          <div style="font-size:10px;color:${MUTED};margin-top:10px;">© ${new Date().getFullYear()} نرسيان طيبة</div>
+        </td></tr>
+
+      </table>
     </td></tr>
-    ${inner}
-    <tr><td style="background:#f4f1ec;padding:14px;text-align:center;font-size:11px;color:#9a9189;">© نرسيان طيبة · Nersyan Taiba — المدينة المنورة</td></tr>
-  </table></td></tr></table></body></html>`;
+  </table>
+</body></html>`;
+}
+
+function badge(text: string, bg: string): string {
+  return `<span style="display:inline-block;background:${bg};color:#ffffff;padding:5px 14px;border-radius:999px;font-size:12px;font-weight:bold;">${text}</span>`;
 }
 
 /** Confirmation email to the guest after a successful (paid) booking. */
 export function guestBookingConfirmedHtml(b: BookingEmailData): string {
-  const details = `
-    <table role="presentation" width="100%" style="margin-top:8px;">
-      ${row("رقم الحجز · Booking ID", b.id)}
-      ${row("الغرفة · Room", `${b.room ?? ""}${b.roomNumber ? ` #${b.roomNumber}` : ""}`)}
-      ${row("الوصول · Check-in", b.checkIn ?? "")}
-      ${row("المغادرة · Check-out", b.checkOut ?? "")}
-      ${row("الضيوف · Guests", String(b.guests ?? ""))}
-      ${row("المبلغ · Amount", b.amount != null ? `${b.amount} SAR` : "")}
-    </table>`;
+  const rows: Array<[string, string]> = [
+    ["رقم الحجز · Booking ID", b.id],
+    ["الغرفة · Room", `${b.room ?? ""}${b.roomNumber ? ` #${b.roomNumber}` : ""}`],
+    ["الوصول · Check-in", b.checkIn ?? ""],
+    ["المغادرة · Check-out", b.checkOut ?? ""],
+    ["الضيوف · Guests", String(b.guests ?? "")],
+    ["المبلغ المدفوع · Amount paid", b.amount != null ? `${b.amount} SAR` : ""],
+  ];
   const inner = `
-    <tr><td dir="rtl" style="padding:24px 24px 4px;text-align:right;">
-      <h1 style="margin:0 0 8px;font-size:20px;color:#2c2420;">تم تأكيد حجزك ✅</h1>
-      <p style="margin:0;font-size:14px;color:#6b6258;line-height:1.8;">شكراً ${b.guestName ?? ""}، تم تأكيد حجزك ودفعك بنجاح. نتطلّع لاستضافتك في المدينة المنورة.</p>
-    </td></tr>
-    <tr><td style="padding:8px 24px 4px;">${details}</td></tr>
-    <tr><td dir="ltr" style="padding:14px 24px 24px;text-align:left;border-top:1px solid #eee;">
-      <h2 style="margin:14px 0 8px;font-size:17px;color:#2c2420;">Your booking is confirmed ✅</h2>
-      <p style="margin:0;font-size:14px;color:#6b6258;line-height:1.6;">Thank you ${b.guestName ?? ""}, your booking and payment were successful. We look forward to hosting you in Madinah.</p>
-    </td></tr>`;
-  return shell(inner);
-}
-
-/** Notification to reception that a new booking arrived. */
-export function receptionNewBookingHtml(b: BookingEmailData, kind: "paid" | "on_arrival"): string {
-  const badge =
-    kind === "paid"
-      ? `<span style="background:#1f9d55;color:#fff;padding:3px 10px;border-radius:999px;font-size:12px;">مدفوع · PAID</span>`
-      : `<span style="background:#c08a2d;color:#fff;padding:3px 10px;border-radius:999px;font-size:12px;">الدفع عند الوصول · PAY ON ARRIVAL</span>`;
-  const details = `
-    <table role="presentation" width="100%" style="margin-top:8px;">
-      ${row("رقم الحجز · Booking ID", b.id)}
-      ${row("الاسم · Guest", b.guestName ?? "")}
-      ${row("البريد · Email", b.email ?? "")}
-      ${row("الجوال · Phone", b.phone ?? "")}
-      ${row("الغرفة · Room", `${b.room ?? ""}${b.roomNumber ? ` #${b.roomNumber}` : ""}`)}
-      ${row("الوصول · Check-in", b.checkIn ?? "")}
-      ${row("المغادرة · Check-out", b.checkOut ?? "")}
-      ${row("الضيوف · Guests", String(b.guests ?? ""))}
-      ${row("المبلغ · Amount", b.amount != null ? `${b.amount} SAR` : "")}
-    </table>`;
-  const inner = `
-    <tr><td dir="rtl" style="padding:24px 24px 4px;text-align:right;">
-      <div style="margin-bottom:10px;">${badge}</div>
-      <h1 style="margin:0 0 8px;font-size:20px;color:#2c2420;">حجز جديد 🛎️</h1>
-      <p style="margin:0;font-size:14px;color:#6b6258;line-height:1.8;">تم استلام حجز جديد. التفاصيل أدناه.</p>
-    </td></tr>
-    <tr><td style="padding:8px 24px 4px;">${details}</td></tr>
-    <tr><td dir="ltr" style="padding:14px 24px 24px;text-align:left;border-top:1px solid #eee;">
-      <h2 style="margin:14px 0 6px;font-size:17px;color:#2c2420;">New booking 🛎️</h2>
-      <p style="margin:0;font-size:13px;color:#6b6258;">A new booking was received — details above.</p>
-    </td></tr>`;
-  return shell(inner);
+    <div dir="rtl" style="text-align:right;">
+      <h1 style="margin:0 0 8px;font-size:21px;color:${INK};">تم تأكيد حجزك 🎉</h1>
+      <p style="margin:0 0 14px;font-size:14px;color:#6b6258;line-height:1.9;">شكراً ${b.guestName ?? ""}، تم استلام دفعتك وتأكيد حجزك بنجاح. نتطلّع لاستضافتك في المدينة المنورة.</p>
+    </div>
+    ${detailsTable(rows)}
+    ${button(`${SITE_URL}/my-bookings`, "عرض حجوزاتي · View my bookings")}
+    <div dir="ltr" style="text-align:left;border-top:1px solid #efe9e0;margin-top:14px;padding-top:14px;">
+      <h2 style="margin:0 0 6px;font-size:17px;color:${INK};">Your booking is confirmed 🎉</h2>
+      <p style="margin:0;font-size:13px;color:#6b6258;line-height:1.7;">Thank you ${b.guestName ?? ""}, your payment was received and your booking is confirmed. We look forward to hosting you in Madinah.</p>
+    </div>`;
+  return shell({
+    preheader: `تم تأكيد حجزك ${b.id} · Booking confirmed`,
+    badge: badge("مدفوع · CONFIRMED", "#1f9d55"),
+    inner,
+  });
 }
 
 /** Acknowledgement to the guest for a pay-on-arrival booking. */
 export function guestBookingReceivedHtml(b: BookingEmailData): string {
+  const rows: Array<[string, string]> = [
+    ["رقم الحجز · Booking ID", b.id],
+    ["الغرفة · Room", `${b.room ?? ""}${b.roomNumber ? ` #${b.roomNumber}` : ""}`],
+    ["الوصول · Check-in", b.checkIn ?? ""],
+    ["المغادرة · Check-out", b.checkOut ?? ""],
+    ["الضيوف · Guests", String(b.guests ?? "")],
+    ["المبلغ · Amount", b.amount != null ? `${b.amount} SAR` : ""],
+  ];
   const inner = `
-    <tr><td dir="rtl" style="padding:24px 24px 4px;text-align:right;">
-      <h1 style="margin:0 0 8px;font-size:20px;color:#2c2420;">تم استلام حجزك 📝</h1>
-      <p style="margin:0;font-size:14px;color:#6b6258;line-height:1.8;">شكراً ${b.guestName ?? ""}، تم استلام حجزك (الدفع عند الوصول). رقم الحجز: <b>${b.id}</b>.</p>
-    </td></tr>
-    <tr><td dir="ltr" style="padding:14px 24px 24px;text-align:left;border-top:1px solid #eee;">
-      <h2 style="margin:14px 0 6px;font-size:17px;color:#2c2420;">Booking received 📝</h2>
-      <p style="margin:0;font-size:14px;color:#6b6258;line-height:1.6;">Thank you ${b.guestName ?? ""}, your booking (pay on arrival) was received. Booking ID: <b>${b.id}</b>.</p>
-    </td></tr>`;
-  return shell(inner);
+    <div dir="rtl" style="text-align:right;">
+      <h1 style="margin:0 0 8px;font-size:21px;color:${INK};">تم استلام حجزك 📝</h1>
+      <p style="margin:0 0 14px;font-size:14px;color:#6b6258;line-height:1.9;">شكراً ${b.guestName ?? ""}، تم استلام حجزك (الدفع عند الوصول). سيتم تأكيده من قبل الاستقبال.</p>
+    </div>
+    ${detailsTable(rows)}
+    ${button(`${SITE_URL}/my-bookings`, "عرض حجوزاتي · View my bookings")}
+    <div dir="ltr" style="text-align:left;border-top:1px solid #efe9e0;margin-top:14px;padding-top:14px;">
+      <h2 style="margin:0 0 6px;font-size:17px;color:${INK};">Booking received 📝</h2>
+      <p style="margin:0;font-size:13px;color:#6b6258;line-height:1.7;">Thank you ${b.guestName ?? ""}, your booking (pay on arrival) was received and will be confirmed by reception.</p>
+    </div>`;
+  return shell({
+    preheader: `تم استلام حجزك ${b.id} · Booking received`,
+    badge: badge("الدفع عند الوصول · PAY ON ARRIVAL", "#c08a2d"),
+    inner,
+  });
+}
+
+/** Notification to reception that a new booking arrived. */
+export function receptionNewBookingHtml(b: BookingEmailData, kind: "paid" | "on_arrival"): string {
+  const rows: Array<[string, string]> = [
+    ["رقم الحجز · Booking ID", b.id],
+    ["الاسم · Guest", b.guestName ?? ""],
+    ["البريد · Email", b.email ?? ""],
+    ["الجوال · Phone", b.phone ?? ""],
+    ["الغرفة · Room", `${b.room ?? ""}${b.roomNumber ? ` #${b.roomNumber}` : ""}`],
+    ["الوصول · Check-in", b.checkIn ?? ""],
+    ["المغادرة · Check-out", b.checkOut ?? ""],
+    ["الضيوف · Guests", String(b.guests ?? "")],
+    ["المبلغ · Amount", b.amount != null ? `${b.amount} SAR` : ""],
+  ];
+  const inner = `
+    <div dir="rtl" style="text-align:right;">
+      <h1 style="margin:0 0 8px;font-size:21px;color:${INK};">حجز جديد 🛎️</h1>
+      <p style="margin:0 0 14px;font-size:14px;color:#6b6258;line-height:1.9;">تم استلام حجز جديد عبر الموقع. التفاصيل أدناه.</p>
+    </div>
+    ${detailsTable(rows)}
+    ${button(`${SITE_URL}/admin/bookings`, "فتح لوحة الحجوزات · Open bookings")}
+    <div dir="ltr" style="text-align:left;border-top:1px solid #efe9e0;margin-top:14px;padding-top:14px;">
+      <h2 style="margin:0 0 4px;font-size:16px;color:${INK};">New booking 🛎️</h2>
+      <p style="margin:0;font-size:13px;color:#6b6258;">A new booking was received — details above.</p>
+    </div>`;
+  return shell({
+    preheader: `حجز جديد ${b.id} · New booking`,
+    badge:
+      kind === "paid"
+        ? badge("مدفوع · PAID", "#1f9d55")
+        : badge("الدفع عند الوصول · PAY ON ARRIVAL", "#c08a2d"),
+    inner,
+  });
 }
