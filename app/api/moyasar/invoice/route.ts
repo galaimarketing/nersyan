@@ -95,6 +95,9 @@ export async function POST(req: Request) {
       callback_url: `${origin}/api/moyasar/invoice-webhook`,
       success_url: `${origin}/api/moyasar/invoice-success?bookingId=${encodeURIComponent(booking.id)}`,
       back_url: `${origin}/payment`,
+      // Card only (mada / Visa / Mastercard). Apple Pay & Samsung Pay are not
+      // configured on the account yet, so we don't offer them on checkout.
+      methods: ["creditcard"],
       metadata: { bookingId: String(booking.id) },
     }),
   });
