@@ -19,6 +19,8 @@ export interface AdminBooking {
   amount: number;
   paymentStatus: PaymentStatus;
   createdAt: string;
+  /** ISO timestamp when the checkout-day email was sent (prevents duplicates). */
+  checkoutEmailSentAt?: string;
 }
 
 export interface AdminGuest {
@@ -271,6 +273,10 @@ function normalizeAdminBooking(raw: unknown, index: number): AdminBooking {
     amount: amountNum,
     paymentStatus: coercePaymentStatus(x.paymentStatus ?? x.payment_status ?? x.PaymentStatus),
     createdAt: pickBookingDateSlice(x.createdAt ?? x.created_at ?? x.CreatedAt).slice(0, 10),
+    checkoutEmailSentAt:
+      x.checkoutEmailSentAt != null && String(x.checkoutEmailSentAt).trim()
+        ? String(x.checkoutEmailSentAt).trim()
+        : undefined,
   };
 }
 

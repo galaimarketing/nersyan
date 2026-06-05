@@ -187,6 +187,40 @@ export function guestBookingReceivedHtml(b: BookingEmailData): string {
   });
 }
 
+/** Checkout-day email to the guest: warm goodbye + review CTA. */
+export function guestCheckoutHtml(b: BookingEmailData): string {
+  const reviewUrl = `${SITE_URL}/#reviews`;
+  const inner = `
+    <div dir="rtl" style="text-align:right;">
+      <h1 style="margin:0 0 8px;font-size:21px;color:${INK};">نتمنّى لك سفراً آمناً 🤍</h1>
+      <p style="margin:0 0 12px;font-size:14px;color:#6b6258;line-height:1.9;">
+        عزيزنا ${b.guestName ?? "ضيفنا الكريم"}، نشكرك على إقامتك في <b>نرسيان طيبة</b>.
+        نذكّرك بأن موعد المغادرة اليوم الساعة <b>4:00 مساءً</b>. سعدنا كثيراً باستضافتك،
+        ونتطلّع لرؤيتك مرة أخرى قريباً في المدينة المنورة.
+      </p>
+      <p style="margin:0 0 6px;font-size:14px;color:#6b6258;line-height:1.9;">
+        قبل مغادرتك، يسعدنا أن تشاركنا رأيك بتقييم بسيط — رأيك يهمّنا ويساعد ضيوفنا القادمين. 🌟
+      </p>
+    </div>
+    ${button(reviewUrl, "أضف تقييمك · Leave a review")}
+    <div dir="ltr" style="text-align:left;border-top:1px solid #efe9e0;margin-top:14px;padding-top:14px;">
+      <h2 style="margin:0 0 6px;font-size:17px;color:${INK};">Safe travels 🤍</h2>
+      <p style="margin:0 0 8px;font-size:13px;color:#6b6258;line-height:1.7;">
+        Dear ${b.guestName ?? "guest"}, thank you for staying with <b>Nersyan Taiba</b>.
+        A gentle reminder that check-out is today at <b>4:00 PM</b>. It was a pleasure hosting you,
+        and we hope to welcome you back to Madinah soon.
+      </p>
+      <p style="margin:0;font-size:13px;color:#6b6258;line-height:1.7;">
+        Before you go, we'd love a quick review — it means a lot and helps future guests. 🌟
+      </p>
+    </div>`;
+  return shell({
+    preheader: "نتمنّى لك سفراً آمناً ونسعد بتقييمك · Safe travels — we'd love your review",
+    badge: badge("موعد المغادرة اليوم · CHECK-OUT TODAY", GOLD),
+    inner,
+  });
+}
+
 /** Notification to reception that a new booking arrived. */
 export function receptionNewBookingHtml(b: BookingEmailData, kind: "paid" | "on_arrival"): string {
   const rows: Array<[string, string]> = [
