@@ -100,7 +100,7 @@ function shell(opts: { preheader: string; badge?: string; inner: string }): stri
 
         <!-- Header -->
         <tr><td style="background:${BROWN};background-image:linear-gradient(135deg,${BROWN},${BROWN_DARK});padding:30px 24px 26px;text-align:center;">
-          <div style="display:inline-block;width:54px;height:54px;line-height:54px;border-radius:50%;background:#ffffff;color:${BROWN};font-size:26px;font-weight:bold;">ن</div>
+          <img src="${SITE_URL}/logo-email.png" width="60" height="60" alt="نرسيان طيبة" style="display:inline-block;width:60px;height:60px;border:0;outline:none;" />
           <div style="color:#ffffff;font-size:20px;font-weight:bold;letter-spacing:.3px;margin-top:12px;">نرسيان طيبة</div>
           <div style="color:${GOLD};font-size:12px;font-weight:600;letter-spacing:1px;margin-top:2px;">NERSYAN TAIBA · المدينة المنورة</div>
           ${opts.badge ? `<div style="margin-top:14px;">${opts.badge}</div>` : ""}
