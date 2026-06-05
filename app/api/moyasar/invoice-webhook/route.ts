@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
 import { getAdminData, setAdminData } from "@/lib/db";
+import {
+  sendEmail,
+  getReceptionEmail,
+  guestBookingConfirmedHtml,
+  receptionNewBookingHtml,
+} from "@/lib/email";
 
 function getEnv(key: string): string | undefined {
   const v = process.env[key];
@@ -107,7 +113,45 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false }, { status: 500 });
   }
 
+  // Detect the paid transition so we email exactly once (webhooks can repeat).
+  const prev = (data.bookings ?? []).find((b) => b.id === bookingId);
+  const wasPaid = String(prev?.paymentStatus ?? "").toLowerCase() === "paid";
+  const nowPaid = String(authoritativeStatus).toLowerCase() === "paid";
+
   const nextBookings = applyStatusToBookings(data.bookings, bookingId, authoritativeStatus);
   await setAdminData({ ...data, bookings: nextBookings });
+
+  if (nowPaid && !wasPaid && prev) {
+    const b = {
+      id: prev.id,
+      guestName: prev.guestName,
+      email: prev.email,
+      phone: prev.phone,
+      room: prev.room,
+      roomNumber: prev.roomNumber,
+      checkIn: prev.checkIn,
+      checkOut: prev.checkOut,
+      guests: prev.guests,
+      amount: prev.amount,
+      paymentStatus: "paid",
+    };
+    // Best-effort; don't block the webhook response on email delivery.
+    await Promise.allSettled([
+      prev.email
+        ? sendEmail({
+            to: prev.email,
+            subject: "تم تأكيد حجزك | Your booking is confirmed — نرسيان طيبة",
+            html: guestBookingConfirmedHtml(b),
+          })
+        : Promise.resolve(false),
+      sendEmail({
+        to: getReceptionEmail(),
+        subject: `حجز جديد مدفوع | New paid booking — ${prev.id}`,
+        html: receptionNewBookingHtml(b, "paid"),
+        replyTo: prev.email || undefined,
+      }),
+    ]);
+  }
+
   return NextResponse.json({ ok: true });
 }
