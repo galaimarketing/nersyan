@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
 import { getAdminData, setAdminData } from "@/lib/db";
+import {
+  sendEmail,
+  getReceptionEmail,
+  guestBookingConfirmedHtml,
+  receptionNewBookingHtml,
+} from "@/lib/email";
 
 function getEnv(key: string): string | undefined {
   const v = process.env[key];
@@ -50,6 +56,9 @@ export async function GET(req: Request) {
 
       const data = await getAdminData();
       if (data) {
+        const prev = (data.bookings ?? []).find((b) => b.id === bookingId);
+        const wasPaid = String(prev?.paymentStatus ?? "").toLowerCase() === "paid";
+
         const nextBookings = (data.bookings ?? []).map((b) => {
           if (b.id !== bookingId) return b;
           if (paid) return { ...b, status: "confirmed" as const, paymentStatus: "paid" as const };
@@ -57,6 +66,39 @@ export async function GET(req: Request) {
           return b;
         });
         await setAdminData({ ...data, bookings: nextBookings });
+
+        // Email once on the paid transition (webhook covers the case where the
+        // customer never returns to this success URL).
+        if (paid && !wasPaid && prev) {
+          const b = {
+            id: prev.id,
+            guestName: prev.guestName,
+            email: prev.email,
+            phone: prev.phone,
+            room: prev.room,
+            roomNumber: prev.roomNumber,
+            checkIn: prev.checkIn,
+            checkOut: prev.checkOut,
+            guests: prev.guests,
+            amount: prev.amount,
+            paymentStatus: "paid",
+          };
+          await Promise.allSettled([
+            prev.email
+              ? sendEmail({
+                  to: prev.email,
+                  subject: "تم تأكيد حجزك | Your booking is confirmed — نرسيان طيبة",
+                  html: guestBookingConfirmedHtml(b),
+                })
+              : Promise.resolve(false),
+            sendEmail({
+              to: getReceptionEmail(),
+              subject: `حجز جديد مدفوع | New paid booking — ${prev.id}`,
+              html: receptionNewBookingHtml(b, "paid"),
+              replyTo: prev.email || undefined,
+            }),
+          ]);
+        }
       }
     }
   }

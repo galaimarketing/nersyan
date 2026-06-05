@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { getAdminData, setAdminData } from "@/lib/db";
 import { mergeCustomerBookingIntoAdminData, type PendingBookingPayload } from "@/lib/admin-store";
+import {
+  sendEmail,
+  getReceptionEmail,
+  guestBookingReceivedHtml,
+  receptionNewBookingHtml,
+} from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -56,6 +62,37 @@ export async function POST(req: Request) {
   if (!saved) {
     return NextResponse.json({ ok: false, error: "Failed to save booking" }, { status: 500 });
   }
+
+  // Notify guest + reception (best-effort — never block the booking on email).
+  const bk = merged.booking;
+  const emailData = {
+    id: bk.id,
+    guestName: bk.guestName,
+    email: bk.email,
+    phone: bk.phone,
+    room: bk.room,
+    roomNumber: bk.roomNumber,
+    checkIn: bk.checkIn,
+    checkOut: bk.checkOut,
+    guests: bk.guests,
+    amount: bk.amount,
+    paymentStatus: "pending",
+  };
+  await Promise.allSettled([
+    bk.email
+      ? sendEmail({
+          to: bk.email,
+          subject: "تم استلام حجزك | Booking received — نرسيان طيبة",
+          html: guestBookingReceivedHtml(emailData),
+        })
+      : Promise.resolve(false),
+    sendEmail({
+      to: getReceptionEmail(),
+      subject: `حجز جديد (الدفع عند الوصول) | New booking (pay on arrival) — ${bk.id}`,
+      html: receptionNewBookingHtml(emailData, "on_arrival"),
+      replyTo: bk.email || undefined,
+    }),
+  ]);
 
   return NextResponse.json({ ok: true, bookingId: merged.booking.id });
 }

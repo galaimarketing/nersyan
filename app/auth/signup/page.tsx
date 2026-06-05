@@ -89,10 +89,15 @@ function SignUpForm() {
 
     setLoading(true);
     try {
+      const emailRedirectTo =
+        typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined;
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
-        options: { data: { full_name: fullName.trim(), name: fullName.trim() } },
+        options: {
+          data: { full_name: fullName.trim(), name: fullName.trim() },
+          emailRedirectTo,
+        },
       });
 
       if (signUpError) {
