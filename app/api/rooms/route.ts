@@ -9,7 +9,10 @@ import {
 } from "@/lib/admin-store";
 import type { Room } from "@/lib/rooms-data";
 
-export const dynamic = "force-dynamic";
+// ISR: cache the public rooms response at the edge and regenerate at most every
+// 30s. Concurrent bursts are served from cache instead of invoking the function
+// and querying Neon on every request.
+export const revalidate = 30;
 
 const PLACEHOLDER_IMAGE =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='%23e5e7eb' width='400' height='300'/%3E%3Ctext fill='%239ca3af' font-family='sans-serif' font-size='16' x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle'%3ERoom image%3C/text%3E%3C/svg%3E";
