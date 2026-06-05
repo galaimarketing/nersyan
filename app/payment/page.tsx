@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ExternalLink, MapPin } from "lucide-react";
+import { ExternalLink, MapPin, ShieldCheck, BedDouble, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { I18nProvider, useI18n } from "@/lib/i18n";
 import { CurrencySymbol } from "@/components/currency-symbol";
+
+const MADINAH_IMG = "/%D8%A7%D9%84%D9%85%D8%B3%D8%AC%D8%AF%20%D8%A7%D9%84%D9%86%D8%A8%D9%88%D9%8A.jpg";
 
 interface PendingBooking {
   roomId: string;
@@ -19,30 +20,12 @@ interface PendingBooking {
 
 function PaymentContent() {
   const { language, dir } = useI18n();
+  const ar = language === "ar";
   const router = useRouter();
   const [booking, setBooking] = useState<PendingBooking | null>(null);
   const [rawPayload, setRawPayload] = useState<string | null>(null);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
-  const [moyasarMode, setMoyasarMode] = useState<"live" | "test" | "unset" | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/moyasar/config", { cache: "no-store" });
-        const j = (await res.json()) as { mode?: string };
-        if (!cancelled && (j.mode === "live" || j.mode === "test" || j.mode === "unset")) {
-          setMoyasarMode(j.mode);
-        }
-      } catch {
-        if (!cancelled) setMoyasarMode("unset");
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -94,16 +77,12 @@ function PaymentContent() {
         body: JSON.stringify({ payload }),
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(json?.error ?? "Failed to start payment");
-      }
-      if (!json?.url) {
-        throw new Error("No payment link returned");
-      }
+      if (!res.ok) throw new Error(json?.error ?? (ar ? "تعذّر بدء الدفع" : "Failed to start payment"));
+      if (!json?.url) throw new Error(ar ? "لم يتم إنشاء رابط الدفع" : "No payment link returned");
       window.localStorage.removeItem("nersian-pending-booking");
       window.location.href = json.url as string;
     } catch (e) {
-      setInvoiceError(e instanceof Error ? e.message : "Payment failed");
+      setInvoiceError(e instanceof Error ? e.message : ar ? "فشل الدفع" : "Payment failed");
     } finally {
       setInvoiceLoading(false);
     }
@@ -119,15 +98,13 @@ function PaymentContent() {
       if (rawPayload) {
         try {
           const payload = JSON.parse(rawPayload);
-          if (userRaw) {
-            try {
-              const user = JSON.parse(userRaw) as { email?: string; fullName?: string; phone?: string };
-              if (user.email) payload.guestEmail = user.email;
-              if (user.fullName && !payload.guestName) payload.guestName = user.fullName;
-              if (user.phone && !payload.guestPhone) payload.guestPhone = user.phone;
-            } catch {
-              // ignore
-            }
+          try {
+            const user = JSON.parse(userRaw) as { email?: string; fullName?: string; phone?: string };
+            if (user.email) payload.guestEmail = user.email;
+            if (user.fullName && !payload.guestName) payload.guestName = user.fullName;
+            if (user.phone && !payload.guestPhone) payload.guestPhone = user.phone;
+          } catch {
+            // ignore
           }
           payload.status = "pending";
           payload.paymentStatus = "pending";
@@ -141,117 +118,106 @@ function PaymentContent() {
         }
         window.localStorage.removeItem("nersian-pending-booking");
       }
-      window.alert(
-        language === "ar"
-          ? "تم تأكيد حجزك. يمكنك الدفع عند الوصول."
-          : "Your booking is confirmed. You can pay on arrival."
-      );
+      window.alert(ar ? "تم تأكيد حجزك. يمكنك الدفع عند الوصول." : "Your booking is confirmed. You can pay on arrival.");
     }
     router.push("/my-bookings");
   };
 
   return (
-    <div className="min-h-screen bg-background" dir={dir}>
-      <main className="flex min-h-screen flex-col items-center justify-center px-4">
-        <div className="w-full max-w-md space-y-6">
-          <div className="space-y-2 text-center">
-            <h1 className="text-2xl font-semibold text-foreground">
-              {language === "ar" ? "الدفع" : "Payment"}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {language === "ar"
-                ? "الدفع عبر فاتورة Moyasar (صفحة دفع رسمية). أو اختر الدفع عند الوصول."
-                : "Pay using a Moyasar invoice (official checkout page), or pay on arrival."}
+    <div className="flex min-h-screen items-center justify-center bg-[#f4f1ec] px-4 py-10" dir={dir}>
+      <div className="grid w-full max-w-4xl overflow-hidden rounded-3xl bg-white shadow-xl md:grid-cols-2">
+        {/* Madinah image side */}
+        <div className="relative hidden min-h-[420px] md:block">
+          <img src={MADINAH_IMG} alt="المسجد النبوي" className="absolute inset-0 h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#3d2f24]/90 via-[#3d2f24]/30 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 p-7 text-white">
+            <p className="text-lg font-bold">نرسيان طيبة</p>
+            <p className="mt-1 text-sm text-white/90">
+              {ar ? "إقامة فاخرة على بُعد خطوات من المسجد النبوي" : "Luxury stays steps from the Prophet's Mosque"}
+            </p>
+          </div>
+        </div>
+
+        {/* Payment side */}
+        <div className="flex flex-col p-7 sm:p-9">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-[#2c2420]">{ar ? "إتمام الدفع" : "Complete payment"}</h1>
+            <p className="mt-2 text-sm text-[#6b6258]">
+              {ar
+                ? "ادفع الآن بأمان عبر بوابة Moyasar، أو اختر الدفع عند الوصول."
+                : "Pay securely now via Moyasar, or choose to pay on arrival."}
             </p>
           </div>
 
           {booking ? (
-            <Card>
-              <CardContent className="space-y-4 p-6">
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">
-                    {language === "ar" ? "الغرفة" : "Room"}
+            <div className="mb-6 rounded-2xl border border-[#ece5da] bg-[#faf8f4] p-5">
+              <div className="flex items-start gap-3">
+                <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[var(--ring)]/10 text-[var(--ring)]">
+                  <BedDouble className="h-5 w-5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-base font-semibold text-[#2c2420]">{booking.roomName}</p>
+                  <p className="mt-0.5 flex items-center gap-1 text-xs text-[#8a8178]">
+                    <Users className="h-3.5 w-3.5" />
+                    {booking.guests} {ar ? "ضيف" : "guests"}
                   </p>
-                  <p className="text-base font-medium text-foreground">{booking.roomName}</p>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    {language === "ar" ? "عدد الضيوف" : "Guests"}
-                  </span>
-                  <span className="font-medium">{booking.guests}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    {language === "ar" ? "الإجمالي" : "Total"}
-                  </span>
-                  <span className="text-lg font-bold text-primary">
-                    {booking.total} <CurrencySymbol />
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="mt-4 flex items-baseline justify-between border-t border-[#ece5da] pt-4">
+                <span className="text-sm text-[#6b6258]">{ar ? "الإجمالي" : "Total"}</span>
+                <span className="text-xl font-bold text-[var(--ring)]">
+                  {booking.total} <CurrencySymbol />
+                </span>
+              </div>
+            </div>
           ) : (
-            <p className="text-center text-sm text-muted-foreground">
-              {language === "ar"
-                ? "لا توجد عملية حجز حالية. يرجى اختيار غرفة أولاً."
-                : "No active booking found. Please select a room first."}
-            </p>
+            <div className="mb-6 rounded-2xl border border-dashed border-[#ddd3c6] bg-[#faf8f4] p-5 text-center text-sm text-[#8a8178]">
+              {ar ? "لا توجد عملية حجز حالية. يرجى اختيار غرفة أولاً." : "No active booking found. Please select a room first."}
+            </div>
           )}
 
-          {invoiceError && (
-            <p className="text-center text-sm text-destructive">{invoiceError}</p>
-          )}
+          {invoiceError && <p className="mb-4 text-center text-sm text-destructive">{invoiceError}</p>}
 
           <div className="space-y-3">
             <Button
-              variant="default"
               size="lg"
-              className="flex w-full items-center justify-center gap-3"
+              className="flex w-full items-center justify-center gap-2 bg-[var(--ring)] text-white shadow-md hover:bg-[var(--ring)]/90"
               onClick={startMoyasarInvoice}
               disabled={!booking || invoiceLoading}
             >
               {invoiceLoading ? (
-                language === "ar" ? "جاري التحضير..." : "Preparing..."
+                ar ? "جاري التحضير..." : "Preparing..."
               ) : (
                 <>
                   <ExternalLink className="h-5 w-5" />
-                  {language === "ar" ? "الدفع عبر Moyasar" : "Pay on Moyasar"}
+                  {ar ? "ادفع الآن" : "Pay now"}
                 </>
               )}
             </Button>
             <Button
-              variant="secondary"
+              variant="outline"
               size="lg"
-              className="flex w-full items-center justify-center gap-3 border-dashed"
+              className="flex w-full items-center justify-center gap-2"
               onClick={handleOnArrival}
               disabled={!booking || invoiceLoading}
             >
               <MapPin className="h-5 w-5" />
-              {language === "ar" ? "الدفع عند الوصول" : "Pay on arrival"}
+              {ar ? "الدفع عند الوصول" : "Pay on arrival"}
             </Button>
           </div>
 
-          <p className="text-center text-xs text-muted-foreground">
-            {moyasarMode === "live"
-              ? language === "ar"
-                ? "وضع الدفع الحي: المفتاح sk_live_ مستخدم. تأكد في لوحة Moyasar أن نطاق موقعك مسموح به."
-                : "Live mode: your server uses a sk_live_ key. In the Moyasar dashboard, allow your site domain if required."
-              : moyasarMode === "test"
-                ? language === "ar"
-                  ? "وضع التجربة: المفتاح sk_test_ لا يسمح بالخصومات الحقيقية. للإنتاج ضع MOYASAR_SECRET_KEY=sk_live_… في بيئة الاستضافة."
-                  : "Test mode (sk_test_): no real charges. For live payments set MOYASAR_SECRET_KEY to sk_live_… on your host."
-                : language === "ar"
-                  ? "أضف MOYASAR_SECRET_KEY في الخادم. سيتم فتح صفحة دفع Moyasar في نفس النافذة."
-                  : "Set MOYASAR_SECRET_KEY on the server. Moyasar checkout opens in this window."}
-          </p>
+          <div className="mt-6 flex items-center justify-center gap-2 text-xs text-[#8a8178]">
+            <ShieldCheck className="h-4 w-4 text-[#1f9d55]" />
+            <span>{ar ? "دفع آمن · mada · Visa · Mastercard" : "Secure payment · mada · Visa · Mastercard"}</span>
+          </div>
 
-          <div className="text-center">
-            <Link href="/rooms" className="text-xs text-primary hover:underline">
-              {language === "ar" ? "العودة للغرف" : "Back to rooms"}
+          <div className="mt-4 text-center">
+            <Link href="/rooms" className="text-xs text-[var(--ring)] hover:underline">
+              {ar ? "العودة للغرف" : "Back to rooms"}
             </Link>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
