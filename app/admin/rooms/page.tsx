@@ -745,13 +745,16 @@ export default function RoomsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredRooms.map((room) => (
-            <Card key={room.id} className="overflow-hidden pt-0">
-              <div className="relative aspect-video bg-muted">
+            <Card
+              key={room.id}
+              className="group overflow-hidden pt-0 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div className="relative aspect-video overflow-hidden bg-muted">
                 {room.image ? (
                   <img
                     src={room.image}
                     alt={`Room ${room.number}`}
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-muted-foreground">

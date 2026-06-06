@@ -275,8 +275,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                       key={link.href}
                       link={link}
                       className={cn(
+                        "rounded-lg transition-colors",
                         pathname === link.href &&
-                          "bg-stone-200/80 text-foreground dark:bg-stone-700/50 dark:text-foreground"
+                          "bg-[var(--ring)]/12 font-semibold text-[var(--ring)] dark:bg-[var(--ring)]/20"
                       )}
                       onClick={() => setOpen(false)}
                     />
