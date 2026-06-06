@@ -29,6 +29,9 @@ export function RoomsSection() {
       <div className="mx-auto max-w-7xl px-6 lg:px-12">
         {/* Section Header */}
         <div className="mb-12 text-center">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--ring)]">
+            {language === "ar" ? "قرب الحرم النبوي" : "Near Al-Masjid an-Nabawi"}
+          </p>
           <h2 className="mb-4 text-3xl font-bold text-foreground md:text-4xl">
             {t("rooms.title")}
           </h2>
@@ -51,13 +54,23 @@ export function RoomsSection() {
         </div>
 
         {/* Rooms Grid */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {displayRooms.map((room, index) => (
-            <div key={room.id} className={index >= 4 ? "hidden lg:block" : ""}>
-              <RoomCard room={room} onBook={handleBookRoom} />
-            </div>
-          ))}
-        </div>
+        {displayRooms.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border bg-card/50 py-16 text-center">
+            <p className="text-sm text-muted-foreground">
+              {language === "ar"
+                ? "سيتم عرض الغرف المتاحة هنا قريباً. تواصل معنا للحجز المباشر."
+                : "Available rooms will appear here soon. Contact us for direct booking."}
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {displayRooms.map((room, index) => (
+              <div key={room.id} className={index >= 4 ? "hidden lg:block" : ""}>
+                <RoomCard room={room} onBook={handleBookRoom} />
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* See More Button */}
         <div className="mt-12 flex justify-center">
