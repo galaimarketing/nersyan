@@ -248,7 +248,7 @@ function RoomDetailsContent({ room }: { room: Room }) {
                 </div>
                 <Button
                   size="lg"
-                  className="w-full sm:w-auto"
+                  className="w-full shadow-md transition-all hover:shadow-lg sm:w-auto"
                   onClick={() => setIsBookingOpen(true)}
                   disabled={!room.available}
                 >

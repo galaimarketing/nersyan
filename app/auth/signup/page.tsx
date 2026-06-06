@@ -313,7 +313,7 @@ function SignUpForm() {
                 {/* Submit */}
                 <Button
                   type="submit"
-                  className="w-full h-12 text-base font-medium rounded-lg"
+                  className="w-full h-12 text-base font-medium rounded-lg shadow-md transition-all hover:shadow-lg"
                   disabled={!agreeTerms || loading}
                 >
                   {loading
