@@ -126,10 +126,11 @@ export function BookingDialog({ room, open, onOpenChange }: BookingDialogProps) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       {open && (
         <DialogContent className="max-h-[90vh] overflow-y-auto p-0 sm:max-w-xl" dir={dir}>
-          <DialogHeader className="border-b p-6">
-            <DialogTitle>{t("booking.bookNow")}</DialogTitle>
+          <DialogHeader className="border-b bg-[#faf8f4] p-6">
+            <DialogTitle className="text-[#2c2420]">{t("booking.bookNow")}</DialogTitle>
             <DialogDescription>
-              {roomName} - {room.price} <CurrencySymbol /> / {t("booking.perNight")}
+              <span className="font-medium text-foreground">{roomName}</span> — {room.price}{" "}
+              <CurrencySymbol /> / {t("booking.perNight")}
             </DialogDescription>
           </DialogHeader>
 
@@ -261,8 +262,8 @@ export function BookingDialog({ room, open, onOpenChange }: BookingDialogProps) 
                   {t("general.cancel")}
                 </Button>
               </DialogClose>
-              <Button 
-                className="w-full sm:w-auto" 
+              <Button
+                className="w-full shadow-md sm:w-auto"
                 disabled={nights === 0 || !guestName}
                 onClick={handleSubmit}
               >
