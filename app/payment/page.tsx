@@ -181,7 +181,7 @@ function PaymentContent() {
           <div className="space-y-3">
             <Button
               size="lg"
-              className="flex w-full items-center justify-center gap-2 bg-[var(--ring)] text-white shadow-md hover:bg-[var(--ring)]/90"
+              className="flex w-full items-center justify-center gap-2 bg-[var(--ring)] text-primary-foreground shadow-md hover:bg-[var(--ring)]/90"
               onClick={startMoyasarInvoice}
               disabled={!booking || invoiceLoading}
             >
