@@ -86,21 +86,26 @@ export default function AdminDashboard() {
       {/* Stats Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.title}>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+          <Card
+            key={stat.title}
+            className="group relative overflow-hidden border-border/70 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+          >
+            {/* subtle gold top accent on hover */}
+            <span className="absolute inset-x-0 top-0 h-0.5 scale-x-0 bg-[var(--ring)] transition-transform duration-200 group-hover:scale-x-100" />
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
+                <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[var(--ring)]/10 ring-1 ring-[var(--ring)]/15">
                   {stat.icon ? (
-                    <stat.icon className="h-6 w-6 text-primary" />
+                    <stat.icon className="h-5 w-5 text-[var(--ring)]" />
                   ) : (
-                    <CurrencySymbol className="inline-block text-2xl leading-none text-primary" />
+                    <CurrencySymbol className="inline-block text-xl leading-none text-[var(--ring)]" />
                   )}
-                </div>
+                </span>
               </div>
-              <div className="mt-4">
-                <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                <p className="text-sm text-muted-foreground">{stat.title}</p>
-              </div>
+              <p className="mt-3 text-3xl font-bold tracking-tight text-foreground tabular-nums">
+                {stat.value}
+              </p>
             </CardContent>
           </Card>
         ))}
