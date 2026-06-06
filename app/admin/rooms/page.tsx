@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Search, Edit, Trash2, MoreVertical, BedDouble, ImageIcon } from "lucide-react";
+import { Plus, Search, Edit, Trash2, MoreVertical, BedDouble, ImageIcon, CircleCheck, Lock, Wrench } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -390,22 +390,27 @@ export default function RoomsPage() {
   });
 
   const getStatusBadge = (status: string) => {
+    // Semantic status: color + icon (never color alone) per UX a11y guidance.
+    // available = open (green), occupied = manually blocked (amber), maintenance = out of service (slate).
     switch (status) {
       case "available":
         return (
-          <Badge className="border border-emerald-700/20 bg-emerald-600/95 font-semibold text-white shadow-sm hover:bg-emerald-600">
+          <Badge className="gap-1 border border-emerald-700/20 bg-emerald-600/95 font-semibold text-white shadow-sm hover:bg-emerald-600">
+            <CircleCheck className="h-3.5 w-3.5" />
             {t("admin.available")}
           </Badge>
         );
       case "occupied":
         return (
-          <Badge className="border border-blue-800/20 bg-blue-600/95 font-semibold text-white shadow-sm hover:bg-blue-600">
+          <Badge className="gap-1 border border-amber-700/20 bg-amber-500/95 font-semibold text-white shadow-sm hover:bg-amber-500">
+            <Lock className="h-3.5 w-3.5" />
             {t("admin.booked")}
           </Badge>
         );
       case "maintenance":
         return (
-          <Badge className="border border-amber-800/20 bg-amber-500/95 font-semibold text-white shadow-sm hover:bg-amber-500">
+          <Badge className="gap-1 border border-slate-600/20 bg-slate-500/95 font-semibold text-white shadow-sm hover:bg-slate-500">
+            <Wrench className="h-3.5 w-3.5" />
             {t("admin.maintenance")}
           </Badge>
         );
