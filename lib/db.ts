@@ -6,15 +6,12 @@ import type { AppSettings } from "@/lib/settings-types";
 const ADMIN_DATA_KEY = "admin_data";
 const SETTINGS_KEY = "settings";
 
-// Short-TTL in-memory caches. Within a warm serverless instance these collapse
-// the many per-request DB reads (rooms, homepage metadata, etc.) into one query
-// per TTL window — this is what keeps the site responsive under concurrent load
-// instead of hammering Neon on every request. Writes refresh the cache so the
-// admin sees their changes immediately.
-const ADMIN_TTL_MS = 15_000;
+// Settings change rarely and are a pure read (used in layout metadata on every
+// page) — safe to cache briefly. Admin data is NOT cached here: many routes do
+// read-modify-write on it, and the admin dashboard needs immediate freshness, so
+// caching it risked stale reads / lost updates. Public read scalability is
+// handled by ISR on /api/rooms instead.
 const SETTINGS_TTL_MS = 60_000;
-
-let adminCache: { data: AdminData; exp: number } | null = null;
 let settingsCache: { data: AppSettings; exp: number } | null = null;
 
 export function getConnectionString(): string | null {
@@ -29,15 +26,13 @@ function getSql() {
 }
 
 export async function getAdminData(): Promise<AdminData | null> {
-  if (adminCache && adminCache.exp > Date.now()) return adminCache.data;
   const sql = getSql();
   if (!sql) return null;
   try {
     const rows = await sql`SELECT value FROM app_data WHERE key = ${ADMIN_DATA_KEY} LIMIT 1`;
     const row = rows[0] as { value: AdminData } | undefined;
     if (!row?.value) return null;
-    adminCache = { data: row.value as AdminData, exp: Date.now() + ADMIN_TTL_MS };
-    return adminCache.data;
+    return row.value as AdminData;
   } catch {
     return null;
   }
@@ -53,8 +48,6 @@ export async function setAdminData(data: AdminData): Promise<boolean> {
       INSERT INTO app_data (key, value) VALUES (${ADMIN_DATA_KEY}, ${JSON.stringify(next)}::jsonb)
       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
     `;
-    // Keep the cache consistent with what we just wrote.
-    adminCache = { data: next, exp: Date.now() + ADMIN_TTL_MS };
     return true;
   } catch {
     return false;

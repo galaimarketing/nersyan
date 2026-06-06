@@ -558,19 +558,15 @@ export function isRoomBooked(data: AdminData, room: AdminRoom): boolean {
 }
 
 /**
- * Persisted room rows: set `status` from active bookings (saved to DB on every PATCH and when GET detects drift).
- * `maintenance` is never auto-changed.
+ * Room `status` is admin-controlled: available / occupied ("محجوزة" = manually
+ * blocked) / maintenance. Live online bookings are reflected separately at read
+ * time via isRoomBooked() — so we must NOT overwrite the admin's manual status
+ * here (doing so reverted manual changes on every save/read).
+ *
+ * Kept as a no-op pass-through so existing callers keep working.
  */
 export function reconcileRoomStatusesWithBookings(data: AdminData): { next: AdminData; changed: boolean } {
-  let changed = false;
-  const rooms = data.rooms.map((room) => {
-    if (room.status === "maintenance") return room;
-    const booked = isRoomBooked(data, room);
-    const newStatus: AdminRoom["status"] = booked ? "occupied" : "available";
-    if (newStatus !== room.status) changed = true;
-    return { ...room, status: newStatus };
-  });
-  return { next: { ...data, rooms }, changed };
+  return { next: data, changed: false };
 }
 
 /**
@@ -641,10 +637,10 @@ export function getEffectiveRoomStatusForAdmin(data: AdminData, room: AdminRoom)
  */
 export function isRoomAvailableForPublic(data: AdminData, room: AdminRoom): boolean {
   if (room.status === "maintenance") return false;
+  // "occupied" = admin manually marked the room booked ("محجوزة") → not bookable.
+  if (room.status === "occupied") return false;
   if (isRoomBooked(data, room)) return false;
-  if (room.status === "available") return true;
-  if (room.status === "occupied") return true;
-  return false;
+  return room.status === "available";
 }
 
 /** Payload stored in nersian-pending-booking when customer goes to payment. */
