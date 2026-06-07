@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-server";
-import { isLikelyRealEmail } from "@/lib/local-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+function isLikelyRealEmail(email: string): boolean {
+  if (!email || email.length > 254 || email.includes("..")) return false;
+  return /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(email);
+}
 
 /**
  * Creates a customer account that is ALREADY email-confirmed (via the Supabase
