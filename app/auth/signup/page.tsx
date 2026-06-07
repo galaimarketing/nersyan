@@ -89,20 +89,16 @@ function SignUpForm() {
 
     setLoading(true);
     try {
-      const emailRedirectTo =
-        typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined;
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          data: { full_name: fullName.trim(), name: fullName.trim() },
-          emailRedirectTo,
-        },
+      // 1) Create the account already-confirmed (server, Admin API) — no email step.
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), password, fullName: fullName.trim() }),
       });
+      const json = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
 
-      if (signUpError) {
-        const msg = signUpError.message.toLowerCase();
-        if (msg.includes("already") || msg.includes("registered")) {
+      if (!res.ok || !json.ok) {
+        if (json.error === "already_exists") {
           setError(
             language === "ar"
               ? "هذا البريد مسجل بالفعل. قم بتسجيل الدخول."
@@ -116,18 +112,22 @@ function SignUpForm() {
         return;
       }
 
-      dispatchNersianAuthChanged();
-
-      // With "Confirm email" disabled in Supabase a session is created immediately.
-      if (!data.session) {
+      // 2) Sign them in immediately — no need to visit the login page.
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (signInError) {
+        // Account exists but auto-login failed — send them to sign in.
         setError(
           language === "ar"
-            ? "تم إنشاء الحساب. يرجى تأكيد بريدك الإلكتروني ثم تسجيل الدخول."
-            : "Account created. Please confirm your email, then sign in."
+            ? "تم إنشاء حسابك. سجّل الدخول الآن ببريدك وكلمة المرور."
+            : "Your account was created. Please sign in with your email and password."
         );
         return;
       }
 
+      dispatchNersianAuthChanged();
       const next = searchParams.get("next") || "/";
       router.push(next);
       router.refresh();
