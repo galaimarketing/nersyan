@@ -100,9 +100,11 @@ export function ReviewsSection() {
               {t("reviews.leaveReview")}
             </Button>
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {reviews.length > 0 ? `${average.toFixed(1)} / 5 • ${reviews.length}` : t("reviews.noReviews")}
-          </p>
+          {reviews.length > 0 ? (
+            <p className="mt-2 text-sm text-muted-foreground">
+              {`${average.toFixed(1)} / 5 • ${reviews.length}`}
+            </p>
+          ) : null}
           {statusText ? <p className="mt-2 text-sm text-muted-foreground">{statusText}</p> : null}
         </div>
 
@@ -156,7 +158,9 @@ export function ReviewsSection() {
           ) : null}
 
           {reviews.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t("reviews.noReviews")}</p>
+            <div className="rounded-2xl border border-dashed border-border bg-card/50 py-10 text-center">
+              <p className="text-sm text-muted-foreground">{t("reviews.noReviews")}</p>
+            </div>
           ) : (
             <div className="space-y-3">
               {reviews.length > 1 ? (
