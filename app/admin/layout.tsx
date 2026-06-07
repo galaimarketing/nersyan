@@ -238,6 +238,11 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     return crumbs;
   })();
 
+  // The login page is pre-auth — render it full-screen without the admin shell/sidebar.
+  if (pathname === "/admin/login") {
+    return <>{children}</>;
+  }
+
   return (
     <>
       {/* Mobile: show "use desktop" message only */}
